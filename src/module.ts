@@ -1,9 +1,17 @@
 import { PanelPlugin } from '@grafana/data';
 import { CityOptions, DEFAULT_OPTIONS } from './types';
 import { CityPanel } from './components/CityPanel';
+import { LayoutEditor } from './components/editors/LayoutEditor';
 
 export const plugin = new PanelPlugin<CityOptions>(CityPanel).setPanelOptions((builder) => {
   return builder
+    .addCustomEditor({
+      id: 'layout-editor',
+      path: 'layout',
+      name: 'City Layout',
+      editor: LayoutEditor,
+      defaultValue: DEFAULT_OPTIONS.layout,
+    })
     .addTextInput({
       path: 'nameField',
       name: 'Name field',
