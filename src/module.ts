@@ -39,5 +39,17 @@ export const plugin = new PanelPlugin<CityOptions>(CityPanel).setPanelOptions((b
       name: 'Critical threshold',
       description: 'Value >= this = critical (red). Below = offline.',
       defaultValue: DEFAULT_OPTIONS.thresholds.critical,
+    })
+    .addTextInput({
+      path: 'trafficDensityField',
+      name: 'Traffic density field',
+      description: 'Column name for traffic density (0-100). Leave empty for default 50%.',
+      defaultValue: '',
+    })
+    .addTextInput({
+      path: 'trafficSpeedField',
+      name: 'Traffic speed field',
+      description: 'Column name for traffic speed (slow/normal/fast or 0-100 numeric)',
+      defaultValue: '',
     });
 });

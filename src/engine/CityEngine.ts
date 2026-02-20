@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Building, BuildingState } from '../types';
+import { Building, BuildingState, TrafficSpeed } from '../types';
 import { BasePrefab, createPrefab, COLORS } from '../prefabs';
+import { RoadNetwork } from './RoadNetwork';
+import { TrafficManager } from './traffic';
 
 /**
  * CityEngine - Three.js scene manager for the Grafana panel.
@@ -17,6 +19,8 @@ export class CityEngine {
   private animationFrameId: number | null = null;
 
   private prefabs: Map<string, BasePrefab> = new Map();
+  private roadNetwork!: RoadNetwork;
+  private trafficManager: TrafficManager | null = null;
   private isDisposed = false;
 
   constructor(container: HTMLDivElement) {
@@ -123,17 +127,10 @@ export class CityEngine {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // Glow layer
-    const glowGeo = new THREE.PlaneGeometry(30, 30);
-    const glowMat = new THREE.MeshBasicMaterial({
-      color: COLORS.glow.cyan,
-      transparent: true,
-      opacity: 0.03,
-    });
-    const glowPlane = new THREE.Mesh(glowGeo, glowMat);
-    glowPlane.rotation.x = -Math.PI / 2;
-    glowPlane.position.y = 0.001;
-    this.scene.add(glowPlane);
+    // Tron-style ground grid (replaces static glow layer)
+    this.roadNetwork = new RoadNetwork();
+    this.roadNetwork.buildGroundGrid(30);
+    this.scene.add(this.roadNetwork.getObject());
   }
 
   // ---------------------------------------------------------------------------
@@ -160,6 +157,14 @@ export class CityEngine {
 
     for (const prefab of this.prefabs.values()) {
       prefab.update(deltaTime);
+    }
+
+    // Update road animations
+    this.roadNetwork.update(deltaTime);
+
+    // Update traffic system
+    if (this.trafficManager) {
+      this.trafficManager.update(deltaTime);
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -190,6 +195,9 @@ export class CityEngine {
       prefab.dispose();
     }
     this.prefabs.clear();
+
+    this.roadNetwork.dispose();
+    this.trafficManager?.dispose();
 
     this.controls.dispose();
     this.renderer.dispose();
@@ -241,6 +249,36 @@ export class CityEngine {
         prefab.updateStatus(state.status);
         prefab.updateActivity(state.activity);
       }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // ROADS & TRAFFIC
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Set road network from grid definition.
+   * Also initializes traffic system on those roads.
+   */
+  setRoads(roads: string[], origin: { x: number; z: number }): void {
+    // Rebuild road meshes
+    this.roadNetwork.build(roads, origin);
+
+    // Initialize or update traffic system
+    if (!this.trafficManager) {
+      this.trafficManager = new TrafficManager(this.scene);
+    }
+    this.trafficManager.setRoads(roads, origin);
+    this.trafficManager.setEnabled(true);
+  }
+
+  /**
+   * Update traffic density and speed from Grafana data.
+   */
+  updateTraffic(density: number, speed: TrafficSpeed): void {
+    if (this.trafficManager) {
+      this.trafficManager.setDensity(density);
+      this.trafficManager.setSpeed(speed);
     }
   }
 

@@ -1,5 +1,5 @@
 import { PanelData, Field } from '@grafana/data';
-import { BuildingState, BuildingStatus, BuildingActivity, CityOptions } from '../types';
+import { BuildingState, BuildingStatus, BuildingActivity, TrafficState, TrafficSpeed, CityOptions } from '../types';
 
 /**
  * Maps Grafana table data to BuildingState array.
@@ -65,6 +65,55 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
   }
 
   return states;
+}
+
+/**
+ * Extract global traffic metrics from Grafana query data.
+ * Looks for density/speed field names and returns the most recent values.
+ */
+export function mapDataToTraffic(
+  data: PanelData,
+  densityField: string,
+  speedField: string
+): TrafficState {
+  let density = 50; // default
+  let speed: TrafficSpeed = 'normal';
+
+  if (!densityField && !speedField) {
+    return { density, speed };
+  }
+
+  for (const frame of data.series) {
+    const dField = densityField ? findField(frame.fields, densityField) : undefined;
+    const sField = speedField ? findField(frame.fields, speedField) : undefined;
+
+    if (dField && dField.values.length > 0) {
+      const val = Number(dField.values[dField.values.length - 1]);
+      if (!isNaN(val)) {
+        density = Math.max(0, Math.min(100, val));
+      }
+    }
+
+    if (sField && sField.values.length > 0) {
+      const raw = String(sField.values[sField.values.length - 1]).toLowerCase().trim();
+      if (raw === 'slow' || raw === 'normal' || raw === 'fast') {
+        speed = raw;
+      } else {
+        // Numeric interpretation: <33 = slow, 34-66 = normal, >66 = fast
+        const num = Number(raw);
+        if (!isNaN(num)) {
+          speed = num < 33 ? 'slow' : num < 67 ? 'normal' : 'fast';
+        }
+      }
+    }
+
+    // Take first frame with data
+    if (dField || sField) {
+      break;
+    }
+  }
+
+  return { density, speed };
 }
 
 function findField(fields: Field[], name: string): Field | undefined {

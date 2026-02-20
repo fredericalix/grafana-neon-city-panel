@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { PanelProps } from '@grafana/data';
 import { CityOptions, Building } from '../types';
 import { CityEngine } from '../engine/CityEngine';
-import { mapDataToStates } from '../data/dataMapper';
+import { mapDataToStates, mapDataToTraffic } from '../data/dataMapper';
 
 interface Props extends PanelProps<CityOptions> {}
 
@@ -57,6 +57,28 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
     const states = mapDataToStates(data, options);
     engineRef.current.updateStates(states);
   }, [data, options]);
+
+  // Sync roads from layout config
+  useEffect(() => {
+    if (!engineRef.current || !options.layout?.roads) {
+      return;
+    }
+    const origin = options.layout.roadOrigin ?? { x: 0, z: 0 };
+    engineRef.current.setRoads(options.layout.roads, origin);
+  }, [options.layout?.roads, options.layout?.roadOrigin]);
+
+  // Update traffic state from Grafana data
+  useEffect(() => {
+    if (!engineRef.current) {
+      return;
+    }
+    const trafficState = mapDataToTraffic(
+      data,
+      options.trafficDensityField ?? '',
+      options.trafficSpeedField ?? ''
+    );
+    engineRef.current.updateTraffic(trafficState.density, trafficState.speed);
+  }, [data, options.trafficDensityField, options.trafficSpeedField]);
 
   return (
     <div

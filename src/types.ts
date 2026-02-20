@@ -37,6 +37,17 @@ export type BuildingActivity = 'slow' | 'normal' | 'fast';
 export type BankQuantity = 'none' | 'low' | 'medium' | 'full';
 
 // =============================================================================
+// TRAFFIC
+// =============================================================================
+
+export type TrafficSpeed = 'slow' | 'normal' | 'fast';
+
+export interface TrafficState {
+  density: number; // 0-100
+  speed: TrafficSpeed;
+}
+
+// =============================================================================
 // BUILDING
 // =============================================================================
 
@@ -79,6 +90,8 @@ export interface LayoutBuilding {
 export interface CityLayout {
   gridSize: number;
   buildings: LayoutBuilding[];
+  roads?: string[];
+  roadOrigin?: { x: number; z: number };
 }
 
 export interface ThresholdConfig {
@@ -93,6 +106,8 @@ export interface CityOptions {
   statusField: string;
   valueField: string;
   nameField: string;
+  trafficDensityField?: string;
+  trafficSpeedField?: string;
 }
 
 export const DEFAULT_OPTIONS: CityOptions = {
@@ -108,6 +123,28 @@ export const DEFAULT_OPTIONS: CityOptions = {
       { id: 'b7', name: 'monitoring', type: 'monitor_tube', x: 8, z: 0, rotation: 0 },
       { id: 'b8', name: 'vault', type: 'bank', x: 0, z: -8, rotation: 0 },
     ],
+    roads: [
+      '000000000010000000000', // z=-9
+      '000000000010000000000', // z=-8  vault
+      '000000000010000000000', // z=-7
+      '000000000010000000000', // z=-6
+      '000111111111111111000', // z=-5  cache, api-gateway
+      '000100000010000001000', // z=-4
+      '000100000010000001000', // z=-3
+      '000100000010000001000', // z=-2
+      '000100000010000001000', // z=-1
+      '111111111111111111111', // z= 0  cdn, database, monitoring
+      '000100000010000001000', // z= 1
+      '000100000010000001000', // z= 2
+      '000100000010000001000', // z= 3
+      '000100000010000001000', // z= 4
+      '000111111111111111000', // z= 5  web-server
+      '000000000010000000000', // z= 6  display
+      '000000000010000000000', // z= 7
+      '000000000010000000000', // z= 8
+      '000000000010000000000', // z= 9
+    ],
+    roadOrigin: { x: -10, z: -9 },
   },
   thresholds: {
     online: 90,
