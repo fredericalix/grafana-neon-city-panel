@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Building, BuildingStatus, BuildingActivity } from '../types';
+import { Building, BuildingStatus, BuildingActivity, BuildingState } from '../types';
 import { getStatusColor, getStatusPulseSpeed, createGlowMaterial } from './materials';
 
 export interface AnimationState {
@@ -62,6 +62,10 @@ export abstract class BasePrefab {
   updateActivity(activity: BuildingActivity): void {
     this.activity = activity;
     this.onActivityChange(activity);
+  }
+
+  updateData(_state: BuildingState): void {
+    // Override in subclasses to handle extra data fields
   }
 
   update(deltaTime: number): void {

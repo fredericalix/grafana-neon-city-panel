@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Building, BuildingStatus, BuildingActivity } from '../types';
+import { Building, BuildingStatus, BuildingActivity, BuildingState } from '../types';
 import { BasePrefab } from './BasePrefab';
 import { COLORS } from './materials';
 import { createHologramMaterial, updateHologramMaterial, HOLOGRAM_PRESETS } from './shaders/HologramShader';
@@ -636,6 +636,12 @@ export class TowerBPrefab extends BasePrefab {
   updateRingText(text: string): void {
     this.ringText = text || 'WHOOKTOWN';
     this.updateTextTexture();
+  }
+
+  override updateData(state: BuildingState): void {
+    if (state.text1 !== undefined) {
+      this.updateRingText(state.text1);
+    }
   }
 
   updateHologramEnabled(enabled: boolean): void {

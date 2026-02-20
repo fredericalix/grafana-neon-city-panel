@@ -1,5 +1,5 @@
 import { PanelData, Field } from '@grafana/data';
-import { BuildingState, BuildingStatus, BuildingActivity, TrafficState, TrafficSpeed, CityOptions } from '../types';
+import { BuildingState, BuildingStatus, BuildingActivity, BankQuantity, DisplayRingCount, TrafficState, TrafficSpeed, CityOptions } from '../types';
 
 /**
  * Maps Grafana table data to BuildingState array.
@@ -24,6 +24,9 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
     const text3Field = findField(frame.fields, 'text3');
     const cpuField = findField(frame.fields, 'cpu');
     const ramField = findField(frame.fields, 'ram');
+    const quantityField = findField(frame.fields, 'quantity');
+    const amountField = findField(frame.fields, 'amount');
+    const ringCountField = findField(frame.fields, 'ringCount');
 
     const rowCount = nameField.values.length;
 
@@ -60,6 +63,9 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
         text3: text3Field ? String(text3Field.values[i] ?? '') : undefined,
         cpuUsage: cpuField ? Number(cpuField.values[i]) : undefined,
         ramUsage: ramField ? Number(ramField.values[i]) : undefined,
+        bankQuantity: quantityField ? resolveBankQuantity(String(quantityField.values[i] ?? '')) : undefined,
+        bankAmount: amountField ? Number(amountField.values[i]) : undefined,
+        ringCount: ringCountField ? resolveRingCount(Number(ringCountField.values[i])) : undefined,
       });
     }
   }
@@ -165,4 +171,16 @@ function resolveStatusFromValue(
     return 'critical';
   }
   return 'offline';
+}
+
+function resolveBankQuantity(text: string): BankQuantity {
+  const lower = text.toLowerCase().trim();
+  if (lower === 'none' || lower === 'low' || lower === 'medium' || lower === 'full') {
+    return lower;
+  }
+  return 'none';
+}
+
+function resolveRingCount(value: number): DisplayRingCount {
+  return value === 2 ? 2 : 3;
 }

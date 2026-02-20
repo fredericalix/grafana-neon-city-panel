@@ -248,6 +248,7 @@ export class CityEngine {
       if (prefab) {
         prefab.updateStatus(state.status);
         prefab.updateActivity(state.activity);
+        prefab.updateData(state);
       }
     }
   }

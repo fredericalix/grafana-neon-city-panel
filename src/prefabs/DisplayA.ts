@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Building, BuildingStatus, BuildingActivity, DisplayRingCount } from '../types';
+import { Building, BuildingStatus, BuildingActivity, BuildingState, DisplayRingCount } from '../types';
 import { BasePrefab } from './BasePrefab';
 import { COLORS } from './materials';
 
@@ -448,6 +448,21 @@ export class DisplayAPrefab extends BasePrefab {
 
   updateText3(text: string): void {
     this.updateText(2, text);
+  }
+
+  override updateData(state: BuildingState): void {
+    if (state.text1 !== undefined) {
+      this.updateText1(state.text1);
+    }
+    if (state.text2 !== undefined) {
+      this.updateText2(state.text2);
+    }
+    if (state.text3 !== undefined) {
+      this.updateText3(state.text3);
+    }
+    if (state.ringCount !== undefined) {
+      this.updateRingCount(state.ringCount);
+    }
   }
 
   // ---------------------------------------------------------------------------

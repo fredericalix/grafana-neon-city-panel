@@ -72,6 +72,9 @@ export interface BuildingState {
   activeConnections?: number;
   temperature?: number;
   alertLevel?: 'normal' | 'warning' | 'critical';
+  bankQuantity?: BankQuantity;
+  bankAmount?: number;
+  ringCount?: DisplayRingCount;
 }
 
 // =============================================================================

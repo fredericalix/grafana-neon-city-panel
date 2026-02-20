@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Building, BuildingStatus, BuildingActivity } from '../types';
+import { Building, BuildingStatus, BuildingActivity, BuildingState } from '../types';
 import { BasePrefab } from './BasePrefab';
 import { COLORS } from './materials';
 
@@ -374,6 +374,12 @@ export class TowerAPrefab extends BasePrefab {
   updateTowerText(text: string): void {
     this.displayText = text || 'WHOOKTOWN';
     this.updateScreenTexture();
+  }
+
+  override updateData(state: BuildingState): void {
+    if (state.text1 !== undefined) {
+      this.updateTowerText(state.text1);
+    }
   }
 
   protected onStatusChange(status: BuildingStatus): void {

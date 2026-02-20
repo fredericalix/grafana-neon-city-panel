@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Building, BuildingStatus, BuildingActivity, BankQuantity } from '../types';
+import { Building, BuildingStatus, BuildingActivity, BuildingState, BankQuantity } from '../types';
 import { BasePrefab } from './BasePrefab';
 import { COLORS } from './materials';
 
@@ -759,6 +759,15 @@ export class BankPrefab extends BasePrefab {
     } else {
       this.displayPanel.visible = true;
       this.updateAmountTexture(amount);
+    }
+  }
+
+  override updateData(state: BuildingState): void {
+    if (state.bankQuantity !== undefined) {
+      this.updateQuantity(state.bankQuantity);
+    }
+    if (state.bankAmount !== undefined) {
+      this.updateAmount(state.bankAmount);
     }
   }
 
