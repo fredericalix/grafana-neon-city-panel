@@ -111,6 +111,8 @@ export interface CityOptions {
   nameField: string;
   trafficDensityField?: string;
   trafficSpeedField?: string;
+  enableInteraction?: boolean;
+  showLabels?: boolean;
 }
 
 export const DEFAULT_OPTIONS: CityOptions = {

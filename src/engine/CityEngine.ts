@@ -4,6 +4,9 @@ import { Building, BuildingState, TrafficSpeed } from '../types';
 import { BasePrefab, createPrefab, COLORS } from '../prefabs';
 import { RoadNetwork } from './RoadNetwork';
 import { TrafficManager } from './traffic';
+import { InteractionManager } from './InteractionManager';
+import { TooltipManager } from '../ui/TooltipManager';
+import { LabelManager } from '../ui/LabelManager';
 
 /**
  * CityEngine - Three.js scene manager for the Grafana panel.
@@ -19,9 +22,16 @@ export class CityEngine {
   private animationFrameId: number | null = null;
 
   private prefabs: Map<string, BasePrefab> = new Map();
+  private buildings: Map<string, Building> = new Map();
+  private buildingStates: Map<string, BuildingState> = new Map();
   private roadNetwork!: RoadNetwork;
   private trafficManager: TrafficManager | null = null;
   private isDisposed = false;
+
+  // Interaction subsystems
+  private interactionManager: InteractionManager | null = null;
+  private tooltipManager: TooltipManager | null = null;
+  private labelManager: LabelManager | null = null;
 
   constructor(container: HTMLDivElement) {
     this.container = container;
@@ -167,6 +177,11 @@ export class CityEngine {
       this.trafficManager.update(deltaTime);
     }
 
+    // Update interaction subsystems
+    this.interactionManager?.update();
+    this.tooltipManager?.update();
+    this.labelManager?.update();
+
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -178,6 +193,7 @@ export class CityEngine {
     this.renderer.setSize(width, height);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+    this.tooltipManager?.resize();
   }
 
   dispose(): void {
@@ -190,6 +206,10 @@ export class CityEngine {
 
     this.renderer.domElement.removeEventListener('webglcontextlost', this.onContextLost);
     this.renderer.domElement.removeEventListener('webglcontextrestored', this.onContextRestored);
+
+    this.interactionManager?.dispose();
+    this.tooltipManager?.dispose();
+    this.labelManager?.dispose();
 
     for (const prefab of this.prefabs.values()) {
       prefab.dispose();
@@ -205,6 +225,70 @@ export class CityEngine {
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // INTERACTION
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Initialize interaction subsystems (InteractionManager, TooltipManager, LabelManager).
+   * Call once after start().
+   */
+  setupInteraction(): void {
+    const canvas = this.renderer.domElement;
+
+    this.tooltipManager = new TooltipManager(this.container, this.camera, canvas);
+    this.labelManager = new LabelManager(this.container, this.camera, canvas);
+
+    this.interactionManager = new InteractionManager(this.camera, canvas, this.prefabs);
+    this.interactionManager.setCallbacks({
+      onHover: (buildingId, worldPos) => {
+        if (!this.tooltipManager) {
+          return;
+        }
+        if (buildingId && worldPos) {
+          const building = this.buildings.get(buildingId);
+          const state = this.buildingStates.get(buildingId) ?? null;
+          if (building) {
+            this.tooltipManager.showHoverTooltip(building, state, worldPos);
+          }
+        } else {
+          this.tooltipManager.hideHoverTooltip();
+        }
+      },
+      onSelect: (buildingId, worldPos) => {
+        if (!this.tooltipManager || !buildingId || !worldPos) {
+          return;
+        }
+        if (this.tooltipManager.isDetailVisibleForBuilding(buildingId)) {
+          this.tooltipManager.hideDetailTooltip(buildingId);
+        } else {
+          const building = this.buildings.get(buildingId);
+          const state = this.buildingStates.get(buildingId) ?? null;
+          if (building) {
+            this.tooltipManager.showDetailTooltip(building, state, worldPos);
+          }
+        }
+      },
+    });
+
+    // Sync labels with current prefabs
+    if (this.prefabs.size > 0) {
+      this.labelManager.setBuildings(this.prefabs);
+    }
+  }
+
+  setInteractionEnabled(enabled: boolean): void {
+    this.interactionManager?.setEnabled(enabled);
+    if (!enabled) {
+      this.tooltipManager?.hideHoverTooltip();
+      this.tooltipManager?.hideAllDetailTooltips();
+    }
+  }
+
+  setLabelsVisible(visible: boolean): void {
+    this.labelManager?.setVisible(visible);
   }
 
   // ---------------------------------------------------------------------------
@@ -224,11 +308,13 @@ export class CityEngine {
         this.scene.remove(prefab.getObject());
         prefab.dispose();
         this.prefabs.delete(id);
+        this.buildings.delete(id);
       }
     }
 
     // Add/update buildings
     for (const building of buildings) {
+      this.buildings.set(building.id, building);
       if (!this.prefabs.has(building.id)) {
         const prefab = createPrefab(building);
         const obj = prefab.getObject();
@@ -237,6 +323,9 @@ export class CityEngine {
         this.prefabs.set(building.id, prefab);
       }
     }
+
+    // Sync labels with updated prefabs
+    this.labelManager?.setBuildings(this.prefabs);
   }
 
   /**
@@ -244,6 +333,7 @@ export class CityEngine {
    */
   updateStates(states: BuildingState[]): void {
     for (const state of states) {
+      this.buildingStates.set(state.id, state);
       const prefab = this.prefabs.get(state.id);
       if (prefab) {
         prefab.updateStatus(state.status);

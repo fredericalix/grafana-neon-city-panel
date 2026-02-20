@@ -59,5 +59,15 @@ export const plugin = new PanelPlugin<CityOptions>(CityPanel).setPanelOptions((b
       name: 'Traffic speed field',
       description: 'Column name for traffic speed (slow/normal/fast or 0-100 numeric)',
       defaultValue: '',
+    })
+    .addBooleanSwitch({
+      path: 'enableInteraction',
+      name: 'Enable interaction',
+      defaultValue: true,
+    })
+    .addBooleanSwitch({
+      path: 'showLabels',
+      name: 'Show building labels',
+      defaultValue: false,
     });
 });

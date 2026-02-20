@@ -18,6 +18,7 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
 
     const engine = new CityEngine(containerRef.current);
     engine.start();
+    engine.setupInteraction();
     engineRef.current = engine;
 
     return () => {
@@ -79,6 +80,15 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
     );
     engineRef.current.updateTraffic(trafficState.density, trafficState.speed);
   }, [data, options.trafficDensityField, options.trafficSpeedField]);
+
+  // Sync interaction and labels options
+  useEffect(() => {
+    if (!engineRef.current) {
+      return;
+    }
+    engineRef.current.setInteractionEnabled(options.enableInteraction !== false);
+    engineRef.current.setLabelsVisible(options.showLabels === true);
+  }, [options.enableInteraction, options.showLabels]);
 
   return (
     <div
