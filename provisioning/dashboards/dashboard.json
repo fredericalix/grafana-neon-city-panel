@@ -1,0 +1,80 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-testdata-datasource",
+        "uid": "trlxrdZVk"
+      },
+      "gridPos": {
+        "h": 20,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "nameField": "name",
+        "statusField": "status",
+        "valueField": "value",
+        "thresholds": {
+          "online": 90,
+          "warning": 70,
+          "critical": 0
+        },
+        "layout": {
+          "gridSize": 2,
+          "buildings": [
+            { "id": "b1", "name": "database", "type": "data_center", "x": 0, "z": 0, "rotation": 0 },
+            { "id": "b2", "name": "cache", "type": "pyramid", "x": -7, "z": -5, "rotation": 0 },
+            { "id": "b3", "name": "api-gateway", "type": "tower_a", "x": 7, "z": -5, "rotation": 0 },
+            { "id": "b4", "name": "web-server", "type": "windmill", "x": -5, "z": 5, "rotation": 0 },
+            { "id": "b5", "name": "auth-service", "type": "house_a", "x": 0, "z": 6, "rotation": 0 },
+            { "id": "b6", "name": "frontend", "type": "house_b", "x": 5, "z": 5, "rotation": 0 },
+            { "id": "b7", "name": "load-balancer", "type": "traffic_light", "x": -2, "z": -7, "rotation": 0 },
+            { "id": "b8", "name": "cdn", "type": "led_facade", "x": -8, "z": 0, "rotation": 0 },
+            { "id": "b9", "name": "monitoring", "type": "monitor_tube", "x": 8, "z": 0, "rotation": 0 },
+            { "id": "b10", "name": "vault", "type": "bank", "x": 0, "z": -8, "rotation": 0 }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-testdata-datasource",
+            "uid": "trlxrdZVk"
+          },
+          "refId": "A",
+          "scenarioId": "raw_frame",
+          "rawFrameContent": "[\n  {\n    \"columns\": [\n      { \"text\": \"name\", \"type\": \"string\" },\n      { \"text\": \"status\", \"type\": \"string\" },\n      { \"text\": \"activity\", \"type\": \"string\" },\n      { \"text\": \"cpu\", \"type\": \"number\" },\n      { \"text\": \"ram\", \"type\": \"number\" }\n    ],\n    \"rows\": [\n      [\"database\", \"online\", \"normal\", 72, 85],\n      [\"cache\", \"warning\", \"normal\", null, null],\n      [\"api-gateway\", \"online\", \"fast\", null, null],\n      [\"web-server\", \"online\", \"fast\", null, null],\n      [\"auth-service\", \"online\", \"normal\", null, null],\n      [\"frontend\", \"critical\", \"slow\", null, null],\n      [\"load-balancer\", \"online\", \"normal\", null, null],\n      [\"cdn\", \"online\", \"fast\", null, null],\n      [\"monitoring\", \"warning\", \"normal\", null, null],\n      [\"vault\", \"online\", \"slow\", null, null]\n    ]\n  }\n]"
+        }
+      ],
+      "title": "Neon City - 3D Infrastructure",
+      "type": "whooktown-neoncity-panel"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["neon-city"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Neon City Panel Demo",
+  "uid": "neon-city-demo",
+  "version": 1,
+  "weekStart": ""
+}
