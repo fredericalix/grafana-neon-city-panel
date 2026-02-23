@@ -10,6 +10,7 @@ const TYPE_COLORS: Record<string, string> = {
   pyramid: '#ffab00',
   led_facade: '#00e676',
   monitor_tube: '#448aff',
+  monitor_tube_giant: '#2979ff',
   bank: '#ffd740',
   display_a: '#ea80fc',
 };

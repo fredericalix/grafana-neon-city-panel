@@ -87,21 +87,28 @@ After `docker compose up`, Grafana is available at `http://localhost:3000`.
       { "text": "name", "type": "string" },
       { "text": "status", "type": "string" },
       { "text": "activity", "type": "string" },
+      { "text": "text1", "type": "string" },
+      { "text": "text2", "type": "string" },
+      { "text": "text3", "type": "string" },
       { "text": "cpu", "type": "number" },
       { "text": "ram", "type": "number" },
-      { "text": "text1", "type": "string" },
       { "text": "quantity", "type": "string" },
-      { "text": "amount", "type": "number" }
+      { "text": "amount", "type": "number" },
+      { "text": "band1", "type": "number" },
+      { "text": "band2", "type": "number" },
+      { "text": "band3", "type": "number" },
+      { "text": "band4", "type": "number" },
+      { "text": "band5", "type": "number" }
     ],
     "rows": [
-      ["database",     "online",   "normal", 72,   85,   "PRIMARY-DB-01",    null,   null],
-      ["cache",        "warning",  "normal", null, null, "REDIS-CLUSTER",    null,   null],
-      ["api-gateway",  "online",   "fast",   null, null, "GATEWAY-v3.2.1",   null,   null],
-      ["web-server",   "online",   "fast",   null, null, "NGINX-PROD",       null,   null],
-      ["display",      "online",   "normal", null, null, "AUTH-SERVICE",     null,   null],
-      ["cdn",          "online",   "fast",   null, null, "CLOUDFLARE",       null,   null],
-      ["monitoring",   "warning",  "normal", null, null, "PROMETHEUS",       null,   null],
-      ["vault",        "online",   "slow",   null, null, "VAULT-PROD",       "full", 42750]
+      ["database",    "online",  "normal", "PRIMARY-DB-01", "PostgreSQL 16", "Uptime: 45d", null, null, null,   null,  null, null, null, null, null],
+      ["cache",       "warning", "fast",   "REDIS-CLUSTER", null,            null,          null, null, null,   null,  null, null, null, null, null],
+      ["api-gateway", "online",  "fast",   "GATEWAY-v3.2",  "REST API",      "192.168.1.50", 85, 72,   null,   null,  null, null, null, null, null],
+      ["web-server",  "online",  "normal", "NGINX-PROD",    null,            null,          null, null, null,   null,  null, null, null, null, null],
+      ["display",     "online",  "fast",   "SYS-STATUS",    "ALL SYSTEMS",   "NOMINAL",     null, null, null,   null,  null, null, null, null, null],
+      ["cdn",         "online",  "fast",   "CLOUDFLARE",    null,            null,          null, null, null,   null,  null, null, null, null, null],
+      ["monitoring",  "online",  "normal", "PROMETHEUS",    null,            null,          null, null, null,   null,  92,   65,   38,   80,   15],
+      ["vault",       "online",  "slow",   "VAULT-PROD",    null,            null,          null, null, "full", 42750, null, null, null, null, null]
     ]
   }
 ]
@@ -154,11 +161,13 @@ These optional columns drive specific building visuals. Column name matching is 
 
 | Column | Type | Description | Used by |
 |--------|------|-------------|---------|
-| `text1` | string | Primary display text | Tower A (CRT screens), Tower B (hologram ring), Display A (top ring) |
-| `text2` | string | Secondary display text | Display A (middle ring) |
-| `text3` | string | Tertiary display text | Display A (bottom ring, visible when ringCount=3) |
-| `cpu` | number | CPU usage percentage | Shown in detail tooltip |
-| `ram` | number | RAM usage percentage | Shown in detail tooltip |
+| `text1` | string | Primary display text | Tower A (CRT line 1), Tower B (hologram ring), Display A (top ring) |
+| `text2` | string | Secondary display text | Tower A (CRT line 2), Display A (middle ring) |
+| `text3` | string | Tertiary display text | Tower A (CRT line 3), Display A (bottom ring, visible when ringCount=3) |
+| `cpu` | number (0-100) | CPU usage percentage | Tower A (CRT flicker & noise intensity) |
+| `ram` | number (0-100) | RAM usage percentage | Tower A (CRT chromatic aberration & scanline opacity) |
+| `band1`…`band7` | number (0-100) | Ring band gauge values | Monitor Tube, Monitor Tube Giant (one ring per band column; 3-7 bands) |
+| `msg1`…`msg7` | string | Scrolling text messages for ring bands | Monitor Tube Giant (one message per ring, scrolls over the gauge fill) |
 | `quantity` | string | Vault fill level: `none`, `low`, `medium`, `full` | Bank (gold bar display) |
 | `amount` | number | Numeric amount display | Bank (floating holographic number) |
 | `ringCount` | number | Number of display rings: `2` or `3` | Display A |
@@ -218,7 +227,7 @@ Switch to the **Roads** tab to edit the road network.
 
 ## Building Types
 
-The plugin ships with 8 building types. Unknown types fall back to Windmill.
+The plugin ships with 9 building types. Unknown types fall back to Windmill.
 
 ### Windmill
 
@@ -226,9 +235,16 @@ Cyberpunk energy turbine with a conical tower, 3 rotating blades, neon rings, an
 
 ### Tower A
 
-Massive skyscraper with 4 CRT display screens. Screens show animated scanlines and optional text from the `text1` column. Neon bands pulse along the facade.
+Massive skyscraper with 4 CRT display screens on each facade. Screens show animated scanlines and optional text. When only `text1` is provided, it is displayed large and centered. When `text2` or `text3` are also provided, the screen switches to a multi-line layout.
 
-- **Data fields**: `text1` (displayed on screens; default: "WHOOKTOWN")
+The `cpu` and `ram` fields drive real-time CRT degradation effects:
+
+| Field | Effect at 0 | Effect at 100 |
+|-------|-------------|---------------|
+| `cpu` | Minimal flicker (5% chance), low noise | Heavy flicker (40% chance, stronger intensity), frequent noise lines (30%) |
+| `ram` | Thin scanlines (10% opacity), minimal chromatic aberration (±1px), narrow edge strips | Thick scanlines (35% opacity), strong chromatic aberration (±6px), wide edge strips |
+
+- **Data fields**: `text1` (CRT line 1; default: "WHOOKTOWN"), `text2` (CRT line 2), `text3` (CRT line 3), `cpu` (0-100, flicker & noise), `ram` (0-100, aberration & scanlines)
 
 ### Tower B
 
@@ -254,7 +270,32 @@ Cyberpunk vault with a circular door, security shield dome, and data flow partic
 
 ### Monitor Tube
 
-Cylindrical structure with rotating gauge ring bands around a holographic core. Bands display value gauges with smooth transitions. Hexagonal base with animated grid floor.
+Cylindrical structure with rotating gauge ring bands around a holographic core. Hexagonal base with animated grid floor and an outer shell with circuit patterns.
+
+The number of ring bands is driven by how many `band1`…`band7` columns are present in the data (minimum 3, maximum 7, default 5). Each band value (0-100) controls:
+
+- **Gauge fill**: the arc fill of the ring
+- **Ring radius**: scales from 0.5x (value 0) to 1.5x (value 100) the default radius
+- **Halo intensity**: the base halo ring brightness follows the average of all band values
+
+Bands alternate between cyan/green and magenta/orange color schemes. When the band count changes between data refreshes, rings are rebuilt dynamically.
+
+- **Data fields**: `band1`…`band7` (0-100 each; number of columns present determines the ring count)
+
+### Monitor Tube Giant
+
+A 2x scale variant of Monitor Tube designed for displaying scrolling text messages on each ring band. Same holographic core, hexagonal base, and outer shell, but twice as wide and tall for improved readability.
+
+Each ring has two layers:
+
+- **Background gauge**: same shader-based arc fill as Monitor Tube (driven by `band1`…`band7`)
+- **Text overlay**: a scrolling neon marquee (driven by `msg1`…`msg7`) rendered over the gauge
+
+When a `msgN` column is present for a ring, the text scrolls continuously around the ring with a glow effect. Rings without messages show only the gauge fill. Text scroll speed follows the building's activity level.
+
+This prefab is ideal for displaying alert messages from Grafana Alerting or log lines from Loki. Use Grafana transformations to reshape query results into `msg1`…`msg7` columns.
+
+- **Data fields**: `band1`…`band7` (0-100, gauge fill), `msg1`…`msg7` (scrolling text per ring)
 
 ### LED Facade
 

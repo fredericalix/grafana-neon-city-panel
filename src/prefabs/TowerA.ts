@@ -18,8 +18,16 @@ export class TowerAPrefab extends BasePrefab {
   private screenContext!: CanvasRenderingContext2D;
   private screenTexture!: THREE.CanvasTexture;
   private displayText = 'WHOOKTOWN';
+  private displayText2 = '';
+  private displayText3 = '';
   private scanlineOffset = 0;
   private flickerIntensity = 0;
+
+  // Metric-reactive CRT effects (interpolated smoothly)
+  private targetCpu = 0;
+  private targetRam = 0;
+  private currentCpu = 0;
+  private currentRam = 0;
 
   private readonly TOWER_WIDTH = 1.6;
   private readonly TOWER_DEPTH = 1.6;
@@ -217,15 +225,14 @@ export class TowerAPrefab extends BasePrefab {
   private updateScreenTexture(): void {
     const ctx = this.screenContext;
     const canvas = this.screenCanvas;
-    const text = this.displayText || 'WHOOKTOWN';
+    const cx = canvas.width / 2;
 
+    // Background
     ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const gradient = ctx.createRadialGradient(
-      canvas.width / 2, canvas.height / 2, 0,
-      canvas.width / 2, canvas.height / 2, canvas.width / 1.5
-    );
+    // CRT vignette
+    const gradient = ctx.createRadialGradient(cx, canvas.height / 2, 0, cx, canvas.height / 2, canvas.width / 1.5);
     gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
     gradient.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
     ctx.fillStyle = gradient;
@@ -233,41 +240,73 @@ export class TowerAPrefab extends BasePrefab {
 
     const flickerBrightness = 1 - this.flickerIntensity * 0.3;
 
-    ctx.save();
-    ctx.font = 'bold 48px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    // Aberration offset driven by RAM (0→±1px, 100→±6px)
+    const aberrationOffset = 1 + (this.currentRam / 100) * 5;
 
-    ctx.fillStyle = `rgba(255, 0, 128, ${0.15 * flickerBrightness})`;
-    ctx.fillText(text, canvas.width / 2 - 3, canvas.height / 2);
-    ctx.fillStyle = `rgba(0, 255, 255, ${0.15 * flickerBrightness})`;
-    ctx.fillText(text, canvas.width / 2 + 3, canvas.height / 2);
+    // Determine text lines and vertical positions
+    const lines: { text: string; font: string; y: number }[] = [];
+    const hasMultiple = this.displayText2 || this.displayText3;
 
-    ctx.shadowColor = '#00ffff';
-    ctx.shadowBlur = 20;
-    ctx.fillStyle = `rgba(0, 255, 255, ${0.9 * flickerBrightness})`;
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    if (hasMultiple) {
+      lines.push({ text: this.displayText || 'WHOOKTOWN', font: 'bold 40px monospace', y: 80 });
+      if (this.displayText2) {
+        lines.push({ text: this.displayText2, font: '28px monospace', y: 140 });
+      }
+      if (this.displayText3) {
+        lines.push({ text: this.displayText3, font: '22px monospace', y: 190 });
+      }
+    } else {
+      lines.push({ text: this.displayText || 'WHOOKTOWN', font: 'bold 48px monospace', y: canvas.height / 2 });
+    }
 
-    ctx.shadowBlur = 10;
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.95 * flickerBrightness})`;
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    ctx.restore();
+    // Render each text line with CRT effects
+    for (const line of lines) {
+      ctx.save();
+      ctx.font = line.font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
 
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+      // Chromatic ghosting (magenta left, cyan right)
+      ctx.fillStyle = `rgba(255, 0, 128, ${0.15 * flickerBrightness})`;
+      ctx.fillText(line.text, cx - aberrationOffset, line.y);
+      ctx.fillStyle = `rgba(0, 255, 255, ${0.15 * flickerBrightness})`;
+      ctx.fillText(line.text, cx + aberrationOffset, line.y);
+
+      // Main glow
+      ctx.shadowColor = '#00ffff';
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = `rgba(0, 255, 255, ${0.9 * flickerBrightness})`;
+      ctx.fillText(line.text, cx, line.y);
+
+      // Bright center
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.95 * flickerBrightness})`;
+      ctx.fillText(line.text, cx, line.y);
+      ctx.restore();
+    }
+
+    // Scanlines — opacity driven by RAM (0→0.1, 100→0.35)
+    const scanlineOpacity = 0.1 + (this.currentRam / 100) * 0.25;
+    ctx.fillStyle = `rgba(0, 0, 0, ${scanlineOpacity})`;
     for (let y = this.scanlineOffset % 4; y < canvas.height; y += 4) {
       ctx.fillRect(0, y, canvas.width, 2);
     }
 
-    if (Math.random() < 0.1) {
+    // Random noise/interference — probability driven by CPU (0→5%, 100→30%)
+    const noiseProbability = 0.05 + (this.currentCpu / 100) * 0.25;
+    if (Math.random() < noiseProbability) {
       const lineY = Math.random() * canvas.height;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.fillRect(0, lineY, canvas.width, 2);
     }
 
-    ctx.fillStyle = 'rgba(255, 0, 128, 0.05)';
-    ctx.fillRect(0, 0, 10, canvas.height);
-    ctx.fillStyle = 'rgba(0, 255, 255, 0.05)';
-    ctx.fillRect(canvas.width - 10, 0, 10, canvas.height);
+    // Edge chromatic aberration strips
+    const edgeWidth = 10 + (this.currentRam / 100) * 10;
+    const edgeOpacity = 0.05 + (this.currentRam / 100) * 0.1;
+    ctx.fillStyle = `rgba(255, 0, 128, ${edgeOpacity})`;
+    ctx.fillRect(0, 0, edgeWidth, canvas.height);
+    ctx.fillStyle = `rgba(0, 255, 255, ${edgeOpacity})`;
+    ctx.fillRect(canvas.width - edgeWidth, 0, edgeWidth, canvas.height);
 
     this.screenTexture.needsUpdate = true;
   }
@@ -378,7 +417,19 @@ export class TowerAPrefab extends BasePrefab {
 
   override updateData(state: BuildingState): void {
     if (state.text1 !== undefined) {
-      this.updateTowerText(state.text1);
+      this.displayText = state.text1 || 'WHOOKTOWN';
+    }
+    if (state.text2 !== undefined) {
+      this.displayText2 = state.text2;
+    }
+    if (state.text3 !== undefined) {
+      this.displayText3 = state.text3;
+    }
+    if (state.cpuUsage !== undefined) {
+      this.targetCpu = Math.max(0, Math.min(100, state.cpuUsage));
+    }
+    if (state.ramUsage !== undefined) {
+      this.targetRam = Math.max(0, Math.min(100, state.ramUsage));
     }
   }
 
@@ -425,10 +476,19 @@ export class TowerAPrefab extends BasePrefab {
     this.animTime += deltaTime;
     const speed = this.getActivitySpeed();
 
+    // Smooth interpolation of CPU/RAM metrics
+    const lerpT = Math.min(1, 2.0 * deltaTime);
+    this.currentCpu += (this.targetCpu - this.currentCpu) * lerpT;
+    this.currentRam += (this.targetRam - this.currentRam) * lerpT;
+
     this.scanlineOffset += deltaTime * 60 * speed;
 
-    if (Math.random() < 0.05 * speed) {
-      this.flickerIntensity = Math.random() * 0.5;
+    // Flicker probability driven by CPU (0→0.05, 100→0.4)
+    const flickerProb = (0.05 + (this.currentCpu / 100) * 0.35) * speed;
+    // Flicker max intensity driven by CPU (0→0.2, 100→0.7)
+    const flickerMax = 0.2 + (this.currentCpu / 100) * 0.5;
+    if (Math.random() < flickerProb) {
+      this.flickerIntensity = Math.random() * flickerMax;
     } else {
       this.flickerIntensity *= 0.9;
     }

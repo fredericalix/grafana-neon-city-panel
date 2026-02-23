@@ -39,6 +39,17 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
       }
     }
 
+    // MonitorTubeGiant per-band message fields (msg1..msg7)
+    const msgFields: Field[] = [];
+    for (let m = 1; m <= 7; m++) {
+      const f = findField(frame.fields, `msg${m}`);
+      if (f) {
+        msgFields.push(f);
+      } else {
+        break;
+      }
+    }
+
     const rowCount = nameField.values.length;
 
     for (let i = 0; i < rowCount; i++) {
@@ -79,6 +90,9 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
         ringCount: ringCountField ? resolveRingCount(Number(ringCountField.values[i])) : undefined,
         monitorBands: bandFields.length > 0
           ? bandFields.map((f) => ({ value: Math.max(0, Math.min(100, Number(f.values[i]) || 0)) }))
+          : undefined,
+        monitorMessages: msgFields.length > 0
+          ? msgFields.map((f) => String(f.values[i] ?? ''))
           : undefined,
       });
     }

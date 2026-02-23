@@ -21,6 +21,7 @@ export type BuildingType =
   | 'supervisor'
   | 'arcade'
   | 'monitor_tube'
+  | 'monitor_tube_giant'
   | 'spire'
   | 'led_facade'
   | 'twin_towers'
@@ -76,6 +77,7 @@ export interface BuildingState {
   bankAmount?: number;
   ringCount?: DisplayRingCount;
   monitorBands?: { value: number; label?: string }[];
+  monitorMessages?: string[];
 }
 
 // =============================================================================

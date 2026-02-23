@@ -6,6 +6,7 @@ import { TowerBPrefab } from './TowerB';
 import { PyramidPrefab } from './Pyramid';
 import { LedFacadePrefab } from './LedFacade';
 import { MonitorTubePrefab } from './MonitorTube';
+import { MonitorTubeGiantPrefab } from './MonitorTubeGiant';
 import { BankPrefab } from './Bank';
 import { DisplayAPrefab } from './DisplayA';
 
@@ -17,6 +18,7 @@ export { TowerBPrefab } from './TowerB';
 export { PyramidPrefab } from './Pyramid';
 export { LedFacadePrefab } from './LedFacade';
 export { MonitorTubePrefab } from './MonitorTube';
+export { MonitorTubeGiantPrefab } from './MonitorTubeGiant';
 export { BankPrefab } from './Bank';
 export { DisplayAPrefab } from './DisplayA';
 
@@ -50,6 +52,10 @@ export function createPrefab(building: Building): BasePrefab {
 
     case 'monitor_tube':
       prefab = new MonitorTubePrefab(building);
+      break;
+
+    case 'monitor_tube_giant':
+      prefab = new MonitorTubeGiantPrefab(building);
       break;
 
     case 'bank':

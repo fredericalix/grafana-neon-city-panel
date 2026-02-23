@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-/** The 8 implemented building types */
+/** The 9 implemented building types */
 const BUILDING_TYPES = [
   { value: 'windmill', label: 'Windmill' },
   { value: 'tower_a', label: 'Tower A' },
@@ -8,6 +8,7 @@ const BUILDING_TYPES = [
   { value: 'pyramid', label: 'Pyramid' },
   { value: 'led_facade', label: 'LED Facade' },
   { value: 'monitor_tube', label: 'Monitor Tube' },
+  { value: 'monitor_tube_giant', label: 'Monitor Tube Giant' },
   { value: 'bank', label: 'Bank' },
   { value: 'display_a', label: 'Display A' },
 ];

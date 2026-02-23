@@ -1,0 +1,74 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-testdata-datasource",
+        "uid": "trlxrdZVk"
+      },
+      "gridPos": {
+        "h": 20,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "nameField": "name",
+        "statusField": "status",
+        "valueField": "value",
+        "thresholds": {
+          "online": 90,
+          "warning": 70,
+          "critical": 0
+        },
+        "enableInteraction": true,
+        "showLabels": true,
+        "layout": {
+          "gridSize": 2,
+          "buildings": [
+            { "id": "b1", "name": "ops-center", "type": "monitor_tube_giant", "x": 0, "z": 0, "rotation": 0 }
+          ],
+          "roads": []
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-testdata-datasource",
+            "uid": "trlxrdZVk"
+          },
+          "refId": "A",
+          "scenarioId": "raw_frame",
+          "rawFrameContent": "[\n  {\n    \"columns\": [\n      { \"text\": \"name\", \"type\": \"string\" },\n      { \"text\": \"status\", \"type\": \"string\" },\n      { \"text\": \"activity\", \"type\": \"string\" },\n      { \"text\": \"band1\", \"type\": \"number\" },\n      { \"text\": \"band2\", \"type\": \"number\" },\n      { \"text\": \"band3\", \"type\": \"number\" },\n      { \"text\": \"band4\", \"type\": \"number\" },\n      { \"text\": \"band5\", \"type\": \"number\" },\n      { \"text\": \"msg1\", \"type\": \"string\" },\n      { \"text\": \"msg2\", \"type\": \"string\" },\n      { \"text\": \"msg3\", \"type\": \"string\" },\n      { \"text\": \"msg4\", \"type\": \"string\" },\n      { \"text\": \"msg5\", \"type\": \"string\" }\n    ],\n    \"rows\": [\n      [\"ops-center\", \"online\", \"normal\", 92, 65, 38, 80, 15, \"CPU node-3: 92% spike detected\", \"DISK /dev/sda1: 65% usage\", \"NET eth0: 38 Mbit/s throughput\", \"RAM: 80% heap allocated\", \"IOPS: 15k read / 8k write\"]\n    ]\n  }\n]"
+        }
+      ],
+      "title": "Neon City - Monitor Tube Giant Demo",
+      "type": "whooktown-neoncity-panel"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["neon-city"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Neon City - Monitor Tube Giant Demo",
+  "uid": "monitor-tube-giant-demo",
+  "version": 1,
+  "weekStart": ""
+}
