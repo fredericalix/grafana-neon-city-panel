@@ -33,16 +33,14 @@
         "layout": {
           "gridSize": 2,
           "buildings": [
-            { "id": "b1", "name": "database", "type": "data_center", "x": 0, "z": 0, "rotation": 0 },
+            { "id": "b1", "name": "database", "type": "tower_b", "x": 0, "z": 0, "rotation": 0 },
             { "id": "b2", "name": "cache", "type": "pyramid", "x": -7, "z": -5, "rotation": 0 },
             { "id": "b3", "name": "api-gateway", "type": "tower_a", "x": 7, "z": -5, "rotation": 0 },
             { "id": "b4", "name": "web-server", "type": "windmill", "x": -5, "z": 5, "rotation": 0 },
-            { "id": "b5", "name": "auth-service", "type": "house_a", "x": 0, "z": 6, "rotation": 0 },
-            { "id": "b6", "name": "frontend", "type": "house_b", "x": 5, "z": 5, "rotation": 0 },
-            { "id": "b7", "name": "load-balancer", "type": "traffic_light", "x": -2, "z": -7, "rotation": 0 },
-            { "id": "b8", "name": "cdn", "type": "led_facade", "x": -8, "z": 0, "rotation": 0 },
-            { "id": "b9", "name": "monitoring", "type": "monitor_tube", "x": 8, "z": 0, "rotation": 0 },
-            { "id": "b10", "name": "vault", "type": "bank", "x": 0, "z": -8, "rotation": 0 }
+            { "id": "b5", "name": "display", "type": "display_a", "x": 0, "z": 6, "rotation": 0 },
+            { "id": "b6", "name": "cdn", "type": "led_facade", "x": -8, "z": 0, "rotation": 0 },
+            { "id": "b7", "name": "monitoring", "type": "monitor_tube", "x": 8, "z": 0, "rotation": 0 },
+            { "id": "b8", "name": "vault", "type": "bank", "x": 0, "z": -8, "rotation": 0 }
           ],
           "roads": [
             "000000000010000000000",
@@ -76,10 +74,10 @@
           },
           "refId": "A",
           "scenarioId": "raw_frame",
-          "rawFrameContent": "[\n  {\n    \"columns\": [\n      { \"text\": \"name\", \"type\": \"string\" },\n      { \"text\": \"status\", \"type\": \"string\" },\n      { \"text\": \"activity\", \"type\": \"string\" },\n      { \"text\": \"cpu\", \"type\": \"number\" },\n      { \"text\": \"ram\", \"type\": \"number\" },\n      { \"text\": \"text1\", \"type\": \"string\" },\n      { \"text\": \"quantity\", \"type\": \"string\" },\n      { \"text\": \"amount\", \"type\": \"number\" }\n    ],\n    \"rows\": [\n      [\"database\", \"online\", \"normal\", 72, 85, \"PRIMARY-DB-01\", null, null],\n      [\"cache\", \"warning\", \"normal\", null, null, \"REDIS-CLUSTER\", null, null],\n      [\"api-gateway\", \"online\", \"fast\", null, null, \"GATEWAY-v3.2.1\", null, null],\n      [\"web-server\", \"online\", \"fast\", null, null, \"NGINX-PROD\", null, null],\n      [\"auth-service\", \"online\", \"normal\", null, null, \"AUTH-SERVICE\", null, null],\n      [\"frontend\", \"critical\", \"slow\", null, null, \"REACT-APP\", null, null],\n      [\"load-balancer\", \"online\", \"normal\", null, null, \"HAProxy-LB\", null, null],\n      [\"cdn\", \"online\", \"fast\", null, null, \"CLOUDFLARE\", null, null],\n      [\"monitoring\", \"warning\", \"normal\", null, null, \"PROMETHEUS\", null, null],\n      [\"vault\", \"online\", \"slow\", null, null, \"VAULT-PROD\", \"full\", 42750]\n    ]\n  }\n]"
+          "rawFrameContent": "[\n  {\n    \"columns\": [\n      { \"text\": \"name\", \"type\": \"string\" },\n      { \"text\": \"status\", \"type\": \"string\" },\n      { \"text\": \"activity\", \"type\": \"string\" },\n      { \"text\": \"text1\", \"type\": \"string\" },\n      { \"text\": \"text2\", \"type\": \"string\" },\n      { \"text\": \"text3\", \"type\": \"string\" },\n      { \"text\": \"quantity\", \"type\": \"string\" },\n      { \"text\": \"amount\", \"type\": \"number\" },\n      { \"text\": \"band1\", \"type\": \"number\" },\n      { \"text\": \"band2\", \"type\": \"number\" },\n      { \"text\": \"band3\", \"type\": \"number\" },\n      { \"text\": \"band4\", \"type\": \"number\" },\n      { \"text\": \"band5\", \"type\": \"number\" }\n    ],\n    \"rows\": [\n      [\"database\", \"online\", \"normal\", \"PRIMARY-DB-01\", \"PostgreSQL 16\", \"Uptime: 45d\", null, null, null, null, null, null, null],\n      [\"cache\", \"warning\", \"fast\", \"REDIS-CLUSTER\", null, null, null, null, null, null, null, null, null],\n      [\"api-gateway\", \"online\", \"fast\", \"GATEWAY-v3.2\", null, null, null, null, null, null, null, null, null],\n      [\"web-server\", \"online\", \"normal\", \"NGINX-PROD\", null, null, null, null, null, null, null, null, null],\n      [\"display\", \"online\", \"fast\", \"SYS-STATUS\", \"ALL SYSTEMS\", \"NOMINAL\", null, null, null, null, null, null, null],\n      [\"cdn\", \"online\", \"fast\", \"CLOUDFLARE\", null, null, null, null, null, null, null, null, null],\n      [\"monitoring\", \"online\", \"normal\", \"PROMETHEUS\", null, null, null, null, 92, 65, 38, 80, 15],\n      [\"vault\", \"online\", \"slow\", \"VAULT-PROD\", null, null, \"full\", 42750, null, null, null, null, null]\n    ]\n  }\n]"
         }
       ],
-      "title": "Neon City - 3D Infrastructure",
+      "title": "Neon City - Infrastructure Monitor",
       "type": "whooktown-neoncity-panel"
     }
   ],
@@ -97,6 +95,6 @@
   "timezone": "",
   "title": "Neon City Panel Demo",
   "uid": "neon-city-demo",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

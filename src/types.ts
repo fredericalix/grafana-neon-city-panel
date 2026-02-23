@@ -75,6 +75,7 @@ export interface BuildingState {
   bankQuantity?: BankQuantity;
   bankAmount?: number;
   ringCount?: DisplayRingCount;
+  monitorBands?: { value: number; label?: string }[];
 }
 
 // =============================================================================

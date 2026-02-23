@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Building, BuildingStatus, BuildingActivity } from '../types';
+import { Building, BuildingStatus, BuildingActivity, BuildingState } from '../types';
 import { BasePrefab } from './BasePrefab';
 import {
   MONITOR_TUBE_COLORS,
@@ -48,6 +48,10 @@ const CONFIG = {
     gaugeInterpolationSpeed: 2.0,
     haloPulseSpeed: 1.5,
   },
+  radiusScale: {
+    min: 0.5,  // scale at value 0
+    max: 1.5,  // scale at value 100
+  },
 };
 
 // =============================================================================
@@ -58,6 +62,7 @@ export interface BandData {
   name: string;
   value: number;
   color?: number;
+  radius: number; // 0-100, maps to scale min..max
 }
 
 export interface MonitorTubeMetrics {
@@ -75,6 +80,7 @@ function createDefaultMetrics(count: number = CONFIG.bands.defaultCount): Monito
     bands.push({
       name: `Band ${i + 1}`,
       value: 50,
+      radius: 50,
     });
   }
   return {
@@ -289,10 +295,10 @@ export class MonitorTubePrefab extends BasePrefab {
 
     // Ensure metrics arrays match
     while (this.currentMetrics.bands.length < count) {
-      this.currentMetrics.bands.push({ name: `Band ${this.currentMetrics.bands.length + 1}`, value: 50 });
+      this.currentMetrics.bands.push({ name: `Band ${this.currentMetrics.bands.length + 1}`, value: 50, radius: 50 });
     }
     while (this.targetMetrics.bands.length < count) {
-      this.targetMetrics.bands.push({ name: `Band ${this.targetMetrics.bands.length + 1}`, value: 50 });
+      this.targetMetrics.bands.push({ name: `Band ${this.targetMetrics.bands.length + 1}`, value: 50, radius: 50 });
     }
     this.currentMetrics.bands.length = count;
     this.targetMetrics.bands.length = count;
@@ -421,6 +427,7 @@ export class MonitorTubePrefab extends BasePrefab {
     this.interpolateMetrics(deltaTime);
     this.animateBandRotation(deltaTime);
     this.updateGaugeFills();
+    this.updateBandRadii();
     this.updateHalo();
     this.updateShaderUniforms();
   }
@@ -433,6 +440,8 @@ export class MonitorTubePrefab extends BasePrefab {
       if (i < this.targetMetrics.bands.length) {
         this.currentMetrics.bands[i].value +=
           (this.targetMetrics.bands[i].value - this.currentMetrics.bands[i].value) * t;
+        this.currentMetrics.bands[i].radius +=
+          (this.targetMetrics.bands[i].radius - this.currentMetrics.bands[i].radius) * t;
       }
     }
   }
@@ -458,6 +467,47 @@ export class MonitorTubePrefab extends BasePrefab {
         const bandData = this.currentMetrics.bands[i];
         if (bandData.color !== undefined) {
           mat.uniforms.uColorLow.value = new THREE.Color(bandData.color);
+        }
+      }
+    }
+  }
+
+  private updateBandRadii(): void {
+    const { min, max } = CONFIG.radiusScale;
+    for (let i = 0; i < this.bandMeshes.length; i++) {
+      if (i < this.currentMetrics.bands.length) {
+        const normalized = this.currentMetrics.bands[i].radius / 100;
+        const scale = min + normalized * (max - min);
+        this.bandMeshes[i].scale.set(scale, scale, 1);
+      }
+    }
+  }
+
+  override updateData(state: BuildingState): void {
+    if (!state.monitorBands || state.monitorBands.length === 0) {
+      return;
+    }
+
+    const count = Math.max(CONFIG.bands.minCount, Math.min(CONFIG.bands.maxCount, state.monitorBands.length));
+
+    // Rebuild bands if count changed
+    if (count !== this.currentMetrics.bandCount) {
+      this.currentMetrics.bandCount = count as 3 | 4 | 5 | 6 | 7;
+      this.targetMetrics.bandCount = count as 3 | 4 | 5 | 6 | 7;
+      this.rebuildBands(count);
+      // Re-apply current status/activity presets to new band materials
+      this.onStatusChange(this.status);
+      this.onActivityChange(this.activity);
+    }
+
+    // Update target values and radii from data
+    for (let i = 0; i < count; i++) {
+      if (i < state.monitorBands.length) {
+        const band = state.monitorBands[i];
+        this.targetMetrics.bands[i].value = band.value;
+        this.targetMetrics.bands[i].radius = band.value;
+        if (band.label) {
+          this.targetMetrics.bands[i].name = band.label;
         }
       }
     }

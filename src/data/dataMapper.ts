@@ -28,6 +28,17 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
     const amountField = findField(frame.fields, 'amount');
     const ringCountField = findField(frame.fields, 'ringCount');
 
+    // MonitorTube per-band metric fields (band1..band7)
+    const bandFields: Field[] = [];
+    for (let b = 1; b <= 7; b++) {
+      const f = findField(frame.fields, `band${b}`);
+      if (f) {
+        bandFields.push(f);
+      } else {
+        break;
+      }
+    }
+
     const rowCount = nameField.values.length;
 
     for (let i = 0; i < rowCount; i++) {
@@ -66,6 +77,9 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
         bankQuantity: quantityField ? resolveBankQuantity(String(quantityField.values[i] ?? '')) : undefined,
         bankAmount: amountField ? Number(amountField.values[i]) : undefined,
         ringCount: ringCountField ? resolveRingCount(Number(ringCountField.values[i])) : undefined,
+        monitorBands: bandFields.length > 0
+          ? bandFields.map((f) => ({ value: Math.max(0, Math.min(100, Number(f.values[i]) || 0)) }))
+          : undefined,
       });
     }
   }
