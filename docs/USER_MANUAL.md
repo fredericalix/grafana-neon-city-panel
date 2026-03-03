@@ -1,6 +1,6 @@
 # Neon City Panel - User Manual
 
-A Grafana panel plugin that renders a cyberpunk 3D city using Three.js. Each building in the city represents a monitored service, and its appearance — color, glow, animation speed — reacts in real time to data from your Grafana queries.
+A Grafana panel plugin that renders a tron like 3D city using Three.js. Each building in the city represents a monitored service, and its appearance — color, glow, animation speed — reacts in real time to data from your Grafana queries.
 
 ## Table of Contents
 
