@@ -10,6 +10,7 @@ import { BuildingState, BuildingStatus, BuildingActivity, BankQuantity, DisplayR
 export function mapDataToStates(data: PanelData, options: CityOptions): BuildingState[] {
   const states: BuildingState[] = [];
 
+  // First pass: try table format (frames with a name column from transformations)
   for (const frame of data.series) {
     const nameField = findField(frame.fields, options.nameField);
     if (!nameField) {
@@ -98,7 +99,125 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
     }
   }
 
-  return states;
+  if (states.length > 0) {
+    return states;
+  }
+
+  // Second pass: Prometheus multi-query format.
+  // Each query returns a separate frame with refId (A=health, B=cpu, C=ram, D=disk).
+  // Instance names can be in table columns OR in field.labels depending on Grafana version/format.
+  const prometheusStates = extractPrometheusStates(data, options);
+  if (prometheusStates.length > 0) {
+    return prometheusStates;
+  }
+
+  // Last resort fallback: single numeric-multi frames without refId awareness.
+  const stateMap = new Map<string, BuildingState>();
+
+  for (const frame of data.series) {
+    const numericField = frame.fields.find((f) => f.type === 'number' && f.labels);
+    if (!numericField?.labels || numericField.values.length === 0) {
+      continue;
+    }
+
+    const name = numericField.labels['instance'] ?? numericField.labels[options.nameField] ?? '';
+    if (!name) {
+      continue;
+    }
+
+    const val = Number(numericField.values[0]);
+
+    if (!stateMap.has(name)) {
+      stateMap.set(name, {
+        id: name,
+        status: resolveStatusFromValue(val, options.thresholds),
+        activity: 'normal',
+      });
+    }
+  }
+
+  return Array.from(stateMap.values());
+}
+
+/**
+ * Extract states from Prometheus multi-query format.
+ * Handles both table-column format (instance as a string column)
+ * and labeled-numeric format (instance in field.labels).
+ * Uses refId to route: A=health/status, B=cpu, C=ram, D=disk.
+ */
+function extractPrometheusStates(data: PanelData, options: CityOptions): BuildingState[] {
+  const stateMap = new Map<string, BuildingState>();
+  const seenInA = new Set<string>();
+
+  for (const frame of data.series) {
+    const refId = frame.refId;
+    const pairs = extractInstanceValuePairs(frame, options);
+
+    for (const { name, value } of pairs) {
+      if (!stateMap.has(name)) {
+        stateMap.set(name, { id: name, status: 'offline', activity: 'normal' });
+      }
+      const state = stateMap.get(name)!;
+
+      if (refId === 'A' || refId === undefined) {
+        state.status = resolveStatusFromValue(value, options.thresholds);
+        seenInA.add(name);
+      } else if (refId === 'B') {
+        state.cpuUsage = value;
+      } else if (refId === 'C') {
+        state.ramUsage = value;
+      } else if (refId === 'D') {
+        state.monitorBands = [{ value: Math.max(0, Math.min(100, value || 0)) }];
+      }
+    }
+  }
+
+  // Instances only seen in B/C/D but not A: keep default 'offline' status
+  return Array.from(stateMap.values());
+}
+
+/**
+ * Extract (instanceName, numericValue) pairs from a single frame.
+ * Strategy A: table columns (instance string column + Value number column).
+ * Strategy B: labeled numeric field (field.labels.instance).
+ */
+function extractInstanceValuePairs(
+  frame: { fields: Field[] },
+  options: CityOptions
+): Array<{ name: string; value: number }> {
+  const pairs: Array<{ name: string; value: number }> = [];
+
+  // Strategy A: table-column format
+  const instanceCol = frame.fields.find(
+    (f) => f.type === 'string' && (
+      f.name.toLowerCase() === 'instance' ||
+      f.name.toLowerCase() === options.nameField.toLowerCase()
+    )
+  );
+  const valueCol = frame.fields.find(
+    (f) => f.type === 'number' && f.name.toLowerCase() !== 'time'
+  );
+
+  if (instanceCol && valueCol) {
+    for (let i = 0; i < instanceCol.values.length; i++) {
+      const name = String(instanceCol.values[i] ?? '');
+      if (name) {
+        pairs.push({ name, value: Number(valueCol.values[i]) });
+      }
+    }
+    return pairs;
+  }
+
+  // Strategy B: labels on numeric field
+  const numericField = frame.fields.find((f) => f.type === 'number' && f.labels);
+  if (numericField?.labels && numericField.values.length > 0) {
+    const name = numericField.labels['instance'] ?? numericField.labels[options.nameField] ?? '';
+    if (name) {
+      pairs.push({ name, value: Number(numericField.values[0]) });
+    }
+  }
+
+  return pairs;
 }
 
 /**
