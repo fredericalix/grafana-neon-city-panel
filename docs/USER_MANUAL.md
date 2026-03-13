@@ -161,7 +161,7 @@ These optional columns drive specific building visuals. Column name matching is 
 
 | Column | Type | Description | Used by |
 |--------|------|-------------|---------|
-| `text1` | string | Primary display text | Tower A (CRT line 1), Tower B (hologram ring), Display A (top ring) |
+| `text1` | string | Primary display text (overrides layout display text) | Tower A (CRT line 1), Tower B (hologram ring), Display A (top ring) |
 | `text2` | string | Secondary display text | Tower A (CRT line 2), Display A (middle ring) |
 | `text3` | string | Tertiary display text | Tower A (CRT line 3), Display A (bottom ring, visible when ringCount=3) |
 | `cpu` | number (0-100) | CPU usage percentage | Tower A (CRT flicker & noise intensity) |
@@ -210,10 +210,12 @@ Open the layout editor from the panel options sidebar under **City Layout**.
 - **Add a building**: Select a type from the dropdown palette and click the **+** button. A new building appears at the center of the grid.
 - **Select a building**: Click it on the grid. The properties panel appears on the right.
 - **Move a building**: Drag it on the grid. Position snaps to integer coordinates.
-- **Edit properties**: When a building is selected, you can change its **name**, **type**, **x**, **z**, and **rotation**.
+- **Edit properties**: When a building is selected, you can change its **name**, **type**, **display text**, **x**, **z**, and **rotation**.
 - **Delete a building**: Select it, then click the **Delete** button in the properties panel.
 
 The **name** field is critical — it is the key used to match rows in your query data to buildings in the city.
+
+The **Display Text** field (visible for Tower A, Tower B, and Display A) sets a custom default text for the building. If left empty, the building displays "WHOOKTOWN". This text can be overridden at runtime by data query fields (`text1`, `text2`, `text3`). Priority: **data query > display text > "WHOOKTOWN"**.
 
 ### Roads tab
 
@@ -244,13 +246,15 @@ The `cpu` and `ram` fields drive real-time CRT degradation effects:
 | `cpu` | Minimal flicker (5% chance), low noise | Heavy flicker (40% chance, stronger intensity), frequent noise lines (30%) |
 | `ram` | Thin scanlines (10% opacity), minimal chromatic aberration (±1px), narrow edge strips | Thick scanlines (35% opacity), strong chromatic aberration (±6px), wide edge strips |
 
-- **Data fields**: `text1` (CRT line 1; default: "WHOOKTOWN"), `text2` (CRT line 2), `text3` (CRT line 3), `cpu` (0-100, flicker & noise), `ram` (0-100, aberration & scanlines)
+- **Data fields**: `text1` (CRT line 1; overrides display text), `text2` (CRT line 2), `text3` (CRT line 3), `cpu` (0-100, flicker & noise), `ram` (0-100, aberration & scanlines)
+- **Display Text**: Configurable per building in the layout editor. Defaults to "WHOOKTOWN" if not set. Overridden by `text1` from data.
 
 ### Tower B
 
 Octagonal tower with a rotating holographic text ring and a holographic rabbit on the rooftop. The text ring displays scrolling text from the `text1` column.
 
-- **Data fields**: `text1` (scrolling hologram text; default: "WHOOKTOWN")
+- **Data fields**: `text1` (scrolling hologram text; overrides display text)
+- **Display Text**: Configurable per building in the layout editor. Defaults to "WHOOKTOWN" if not set. Overridden by `text1` from data.
 
 ### Pyramid
 
@@ -260,7 +264,8 @@ Multi-tiered ziggurat with a volumetric light beam projecting upward from the ap
 
 Holographic display tower with up to 3 rotating text rings. Each ring scrolls text from `text1`, `text2`, and `text3`. The third ring is only visible when `ringCount` is 3.
 
-- **Data fields**: `text1` (top ring), `text2` (middle ring), `text3` (bottom ring), `ringCount` (2 or 3; default: 3)
+- **Data fields**: `text1` (top ring; overrides display text), `text2` (middle ring), `text3` (bottom ring), `ringCount` (2 or 3; default: 3)
+- **Display Text**: Configurable per building in the layout editor. Sets the top ring default text. Defaults to "WHOOKTOWN" if not set. Overridden by `text1` from data.
 
 ### Bank
 
