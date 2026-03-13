@@ -17,7 +17,7 @@ export class TowerAPrefab extends BasePrefab {
   private screenCanvas!: HTMLCanvasElement;
   private screenContext!: CanvasRenderingContext2D;
   private screenTexture!: THREE.CanvasTexture;
-  private displayText = 'WHOOKTOWN';
+  private displayText: string;
   private displayText2 = '';
   private displayText3 = '';
   private scanlineOffset = 0;
@@ -37,6 +37,7 @@ export class TowerAPrefab extends BasePrefab {
 
   constructor(building: Building) {
     super(building);
+    this.displayText = building.defaultText || 'WHOOKTOWN';
   }
 
   protected build(): void {
@@ -248,7 +249,7 @@ export class TowerAPrefab extends BasePrefab {
     const hasMultiple = this.displayText2 || this.displayText3;
 
     if (hasMultiple) {
-      lines.push({ text: this.displayText || 'WHOOKTOWN', font: 'bold 40px monospace', y: 80 });
+      lines.push({ text: this.displayText || this.building.defaultText || 'WHOOKTOWN', font: 'bold 40px monospace', y: 80 });
       if (this.displayText2) {
         lines.push({ text: this.displayText2, font: '28px monospace', y: 140 });
       }
@@ -256,7 +257,7 @@ export class TowerAPrefab extends BasePrefab {
         lines.push({ text: this.displayText3, font: '22px monospace', y: 190 });
       }
     } else {
-      lines.push({ text: this.displayText || 'WHOOKTOWN', font: 'bold 48px monospace', y: canvas.height / 2 });
+      lines.push({ text: this.displayText || this.building.defaultText || 'WHOOKTOWN', font: 'bold 48px monospace', y: canvas.height / 2 });
     }
 
     // Render each text line with CRT effects
@@ -411,13 +412,13 @@ export class TowerAPrefab extends BasePrefab {
   }
 
   updateTowerText(text: string): void {
-    this.displayText = text || 'WHOOKTOWN';
+    this.displayText = text || this.building.defaultText || 'WHOOKTOWN';
     this.updateScreenTexture();
   }
 
   override updateData(state: BuildingState): void {
     if (state.text1 !== undefined) {
-      this.displayText = state.text1 || 'WHOOKTOWN';
+      this.displayText = state.text1 || this.building.defaultText || 'WHOOKTOWN';
     }
     if (state.text2 !== undefined) {
       this.displayText2 = state.text2;

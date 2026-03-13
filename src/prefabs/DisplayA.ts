@@ -21,7 +21,7 @@ export class DisplayAPrefab extends BasePrefab {
   private ringContexts: CanvasRenderingContext2D[] = [];
   private ringTextures: THREE.CanvasTexture[] = [];
   private textOffsets: number[] = [0, 0, 0];
-  private texts: string[] = ['WHOOKTOWN', 'SYSTEM ONLINE', 'STATUS OK'];
+  private texts: string[];
 
   // Configuration
   private ringCount: DisplayRingCount = 3;
@@ -33,6 +33,7 @@ export class DisplayAPrefab extends BasePrefab {
 
   constructor(building: Building) {
     super(building);
+    this.texts = [building.defaultText || 'WHOOKTOWN', 'SYSTEM ONLINE', 'STATUS OK'];
   }
 
   protected build(): void {

@@ -21,7 +21,7 @@ export class TowerBPrefab extends BasePrefab {
   private textCanvas!: HTMLCanvasElement;
   private textContext!: CanvasRenderingContext2D;
   private textTexture!: THREE.CanvasTexture;
-  private ringText = 'WHOOKTOWN';
+  private ringText: string;
   private textMesh!: THREE.Mesh;
 
   // Rabbit hologram system with custom hologram shader
@@ -41,6 +41,7 @@ export class TowerBPrefab extends BasePrefab {
 
   constructor(building: Building) {
     super(building);
+    this.ringText = building.defaultText || 'WHOOKTOWN';
   }
 
   protected build(): void {
@@ -191,7 +192,7 @@ export class TowerBPrefab extends BasePrefab {
   private updateTextTexture(): void {
     const ctx = this.textContext;
     const canvas = this.textCanvas;
-    const text = this.ringText || 'WHOOKTOWN';
+    const text = this.ringText || this.building.defaultText || 'WHOOKTOWN';
 
     // Clear
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -634,7 +635,7 @@ export class TowerBPrefab extends BasePrefab {
   // ---------------------------------------------------------------------------
 
   updateRingText(text: string): void {
-    this.ringText = text || 'WHOOKTOWN';
+    this.ringText = text || this.building.defaultText || 'WHOOKTOWN';
     this.updateTextTexture();
   }
 

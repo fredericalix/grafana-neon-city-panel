@@ -72,6 +72,20 @@ export const BuildingProperties: React.FC<BuildingPropertiesProps> = ({ building
         />
       </div>
 
+      {/* Display Text — only for text-capable building types */}
+      {['tower_a', 'tower_b', 'display_a'].includes(building.type) && (
+        <div style={rowStyle}>
+          <div style={labelStyle}>Display Text</div>
+          <input
+            type="text"
+            value={building.defaultText || ''}
+            placeholder="WHOOKTOWN"
+            onChange={(e) => onUpdate(building.id, { defaultText: e.target.value || undefined })}
+            style={inputStyle}
+          />
+        </div>
+      )}
+
       {/* Type */}
       <div style={rowStyle}>
         <div style={labelStyle}>Type</div>

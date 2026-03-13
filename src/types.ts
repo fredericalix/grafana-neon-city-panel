@@ -58,6 +58,7 @@ export interface Building {
   type: BuildingType | string;
   location: { x: number; y: number };
   orientation?: 'N' | 'S' | 'E' | 'W';
+  defaultText?: string;
 }
 
 export interface BuildingState {
@@ -91,6 +92,7 @@ export interface LayoutBuilding {
   x: number;
   z: number;
   rotation: number;
+  defaultText?: string;
 }
 
 export interface CityLayout {
