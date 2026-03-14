@@ -12,6 +12,15 @@ const BUILDING_TYPES = [
   { value: 'display_a', label: 'Display A' },
 ];
 
+const NEON_COLOR_PRESETS = [
+  { value: '', label: 'Cyan (default)' },
+  { value: '#ff00ff', label: 'Magenta' },
+  { value: '#33ff66', label: 'Green' },
+  { value: '#4488ff', label: 'Blue' },
+  { value: '#ffaa00', label: 'Orange' },
+  { value: '#ff4444', label: 'Red' },
+];
+
 const ROTATION_PRESETS = [
   { value: 0, label: '0° (N)' },
   { value: 90, label: '90° (E)' },
@@ -83,6 +92,24 @@ export const BuildingProperties: React.FC<BuildingPropertiesProps> = ({ building
             onChange={(e) => onUpdate(building.id, { defaultText: e.target.value || undefined })}
             style={inputStyle}
           />
+        </div>
+      )}
+
+      {/* Neon Color — only for MonitorTubeGiant */}
+      {building.type === 'monitor_tube_giant' && (
+        <div style={rowStyle}>
+          <div style={labelStyle}>Neon Color</div>
+          <select
+            value={building.color || ''}
+            onChange={(e) => onUpdate(building.id, { color: e.target.value || undefined })}
+            style={inputStyle}
+          >
+            {NEON_COLOR_PRESETS.map((c) => (
+              <option key={c.value} value={c.value}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 

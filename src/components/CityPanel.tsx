@@ -45,6 +45,7 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
       location: { x: b.x, y: b.z },
       orientation: rotationToOrientation(b.rotation),
       defaultText: b.defaultText,
+      color: b.color,
     }));
 
     engineRef.current.setBuildings(buildings);
