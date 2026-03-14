@@ -11,6 +11,7 @@ const BUILDING_TYPES = [
   { value: 'monitor_tube_giant', label: 'Monitor Tube Giant' },
   { value: 'bank', label: 'Bank' },
   { value: 'display_a', label: 'Display A' },
+  { value: 'display_a_giant', label: 'Display A Giant' },
 ];
 
 interface BuildingPaletteProps {

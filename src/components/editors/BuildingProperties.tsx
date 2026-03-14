@@ -96,7 +96,7 @@ export const BuildingProperties: React.FC<BuildingPropertiesProps> = ({ building
       )}
 
       {/* Neon Color — only for MonitorTubeGiant */}
-      {building.type === 'monitor_tube_giant' && (
+      {['monitor_tube_giant', 'display_a_giant'].includes(building.type) && (
         <div style={rowStyle}>
           <div style={labelStyle}>Neon Color</div>
           <select

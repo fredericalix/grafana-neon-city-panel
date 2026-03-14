@@ -13,6 +13,7 @@ const TYPE_COLORS: Record<string, string> = {
   monitor_tube_giant: '#2979ff',
   bank: '#ffd740',
   display_a: '#ea80fc',
+  display_a_giant: '#ce93d8',
 };
 
 const CELL = 16; // px per grid unit

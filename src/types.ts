@@ -22,6 +22,7 @@ export type BuildingType =
   | 'arcade'
   | 'monitor_tube'
   | 'monitor_tube_giant'
+  | 'display_a_giant'
   | 'spire'
   | 'led_facade'
   | 'twin_towers'

@@ -9,6 +9,7 @@ import { MonitorTubePrefab } from './MonitorTube';
 import { MonitorTubeGiantPrefab } from './MonitorTubeGiant';
 import { BankPrefab } from './Bank';
 import { DisplayAPrefab } from './DisplayA';
+import { DisplayAGiantPrefab } from './DisplayAGiant';
 
 export { BasePrefab } from './BasePrefab';
 export { COLORS, getStatusColor, createBuildingMaterial, createMetalMaterial } from './materials';
@@ -21,6 +22,7 @@ export { MonitorTubePrefab } from './MonitorTube';
 export { MonitorTubeGiantPrefab } from './MonitorTubeGiant';
 export { BankPrefab } from './Bank';
 export { DisplayAPrefab } from './DisplayA';
+export { DisplayAGiantPrefab } from './DisplayAGiant';
 
 /**
  * Factory function to create the appropriate prefab based on building type.
@@ -64,6 +66,10 @@ export function createPrefab(building: Building): BasePrefab {
 
     case 'display_a':
       prefab = new DisplayAPrefab(building);
+      break;
+
+    case 'display_a_giant':
+      prefab = new DisplayAGiantPrefab(building);
       break;
 
     default:

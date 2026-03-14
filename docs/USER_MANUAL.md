@@ -229,7 +229,7 @@ Switch to the **Roads** tab to edit the road network.
 
 ## Building Types
 
-The plugin ships with 9 building types. Unknown types fall back to Windmill.
+The plugin ships with 10 building types. Unknown types fall back to Windmill.
 
 ### Windmill
 
@@ -266,6 +266,16 @@ Holographic display tower with up to 3 rotating text rings. Each ring scrolls te
 
 - **Data fields**: `text1` (top ring; overrides display text), `text2` (middle ring), `text3` (bottom ring), `ringCount` (2 or 3; default: 3)
 - **Display Text**: Configurable per building in the layout editor. Sets the top ring default text. Defaults to "WHOOKTOWN" if not set. Overridden by `text1` from data.
+
+### Display A Giant
+
+A ~5x scale variant of Display A, matching the height of Monitor Tube Giant (~11.5 units). Same tower structure with circuit patterns, neon edges, top beacon, and 2-3 holographic text rings, but much larger for commanding visual presence.
+
+Uses the same data fields as Display A. The larger canvas and font size make scrolling text highly readable even at distance.
+
+- **Data fields**: `text1` (top ring; overrides display text), `text2` (middle ring), `text3` (bottom ring), `ringCount` (2 or 3; default: 3)
+- **Display Text**: Configurable per building in the layout editor. Sets the top ring default text. Defaults to "WHOOKTOWN" if not set. Overridden by `text1` from data.
+- **Neon Color**: Configurable per building in the layout editor. Same 6 presets as Monitor Tube Giant (Cyan, Magenta, Green, Blue, Orange, Red). Defaults to Cyan.
 
 ### Bank
 
