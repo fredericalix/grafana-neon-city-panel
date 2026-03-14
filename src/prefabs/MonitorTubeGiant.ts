@@ -114,6 +114,16 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
   private messageFinished: boolean[] = [];
   private textWidths: number[] = [];
 
+  // Screen color palette — changes with status
+  private screenColors = {
+    bg: '#000d0d',
+    text: '#00ffff',
+    glow: '#0088aa',
+    highlight: '#66ffff',
+    scanline: 'rgba(0,255,255,0.04)',
+    gradientBase: 'rgba(0,255,255,',
+  };
+
   constructor(building: Building) {
     super(building);
   }
@@ -183,7 +193,7 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
     const { radius, height, segments } = CONFIG.cylinder;
 
     const cylinderGeo = new THREE.CylinderGeometry(radius, radius, height, segments, 1, true);
-    this.cylinderMaterial = createMonitorHologramMaterial();
+    this.cylinderMaterial = createMonitorHologramMaterial({ color: MONITOR_TUBE_COLORS.cyan });
     this.centralCylinder = new THREE.Mesh(cylinderGeo, this.cylinderMaterial);
     this.centralCylinder.position.y = CONFIG.baseHeight + height / 2;
     this.group.add(this.centralCylinder);
@@ -333,7 +343,7 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
   // SCREEN RENDERING
   // ===========================================================================
 
-  /** Render the neon amber CRT background (scanlines, dark glow) */
+  /** Render the neon CRT background (scanlines, dark glow) */
   private renderScreenBackground(index: number): void {
     if (index >= this.screenContexts.length) {
       return;
@@ -342,20 +352,20 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
     const w = CONFIG.screen.canvasWidth;
     const h = CONFIG.screen.canvasHeight;
 
-    // Dark amber base
-    ctx.fillStyle = '#0d0400';
+    // Dark tinted base
+    ctx.fillStyle = this.screenColors.bg;
     ctx.fillRect(0, 0, w, h);
 
     // Subtle horizontal luminosity gradient (brighter center)
     const grad = ctx.createLinearGradient(0, 0, 0, h);
-    grad.addColorStop(0, 'rgba(255,136,0,0.03)');
-    grad.addColorStop(0.5, 'rgba(255,136,0,0.07)');
-    grad.addColorStop(1, 'rgba(255,136,0,0.03)');
+    grad.addColorStop(0, this.screenColors.gradientBase + '0.03)');
+    grad.addColorStop(0.5, this.screenColors.gradientBase + '0.07)');
+    grad.addColorStop(1, this.screenColors.gradientBase + '0.03)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
     // CRT scanlines
-    ctx.fillStyle = 'rgba(255,136,0,0.04)';
+    ctx.fillStyle = this.screenColors.scanline;
     for (let y = 0; y < h; y += 4) {
       ctx.fillRect(0, y, w, 1);
     }
@@ -389,14 +399,14 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
     ctx.textBaseline = 'middle';
 
     // Glow layer
-    ctx.shadowColor = '#ff6600';
+    ctx.shadowColor = this.screenColors.glow;
     ctx.shadowBlur = 16;
-    ctx.fillStyle = '#ff8800';
+    ctx.fillStyle = this.screenColors.text;
     ctx.fillText(msg, offset, h / 2);
 
     // Bright core
     ctx.shadowBlur = 4;
-    ctx.fillStyle = '#ffaa33';
+    ctx.fillStyle = this.screenColors.highlight;
     ctx.fillText(msg, offset, h / 2);
 
     ctx.restore();
@@ -412,6 +422,36 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
                        status === 'warning' ? 'warning' : 'online';
     const preset = MONITOR_TUBE_PRESETS[presetName];
 
+    // Update screen color palette based on status
+    if (status === 'warning') {
+      this.screenColors = {
+        bg: '#0d0800', text: '#ffaa00', glow: '#cc6600',
+        highlight: '#ffcc44', scanline: 'rgba(255,170,0,0.04)', gradientBase: 'rgba(255,170,0,',
+      };
+    } else if (status === 'critical') {
+      this.screenColors = {
+        bg: '#0d0004', text: '#ff4444', glow: '#cc2222',
+        highlight: '#ff8888', scanline: 'rgba(255,68,68,0.04)', gradientBase: 'rgba(255,68,68,',
+      };
+    } else if (status === 'offline') {
+      this.screenColors = {
+        bg: '#080808', text: '#444444', glow: '#222222',
+        highlight: '#666666', scanline: 'rgba(68,68,68,0.04)', gradientBase: 'rgba(68,68,68,',
+      };
+    } else {
+      this.screenColors = {
+        bg: '#000d0d', text: '#00ffff', glow: '#0088aa',
+        highlight: '#66ffff', scanline: 'rgba(0,255,255,0.04)', gradientBase: 'rgba(0,255,255,',
+      };
+    }
+
+    // Re-render all screen backgrounds with new palette
+    for (let i = 0; i < this.screenContexts.length; i++) {
+      if (this.messageFinished[i] || !this.currentMessages[i]) {
+        this.renderScreenBackground(i);
+      }
+    }
+
     if (this.cylinderMaterial) {
       this.cylinderMaterial.uniforms.uOpacity.value = preset.hologramOpacity;
       this.cylinderMaterial.uniforms.uFlickerIntensity.value = preset.flickerIntensity;
@@ -426,15 +466,18 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
         this.cylinderMaterial.uniforms.uChromaticAberration.value = preset.chromaticAberration;
       }
       const hologramColor = status === 'critical' ? MONITOR_TUBE_COLORS.red :
+                            status === 'warning' ? MONITOR_TUBE_COLORS.orange :
                             status === 'offline' ? MONITOR_TUBE_COLORS.metalGray :
-                            MONITOR_TUBE_COLORS.orange;
+                            MONITOR_TUBE_COLORS.cyan;
       this.cylinderMaterial.uniforms.uColor.value = new THREE.Color(hologramColor);
     }
 
     if (this.innerCoreMaterial) {
       this.innerCoreMaterial.opacity = status === 'offline' ? 0.1 : 0.4;
       this.innerCoreMaterial.color.setHex(
-        status === 'critical' ? MONITOR_TUBE_COLORS.red : MONITOR_TUBE_COLORS.orange
+        status === 'critical' ? MONITOR_TUBE_COLORS.red :
+        status === 'warning' ? MONITOR_TUBE_COLORS.orange :
+        MONITOR_TUBE_COLORS.cyan
       );
     }
 
