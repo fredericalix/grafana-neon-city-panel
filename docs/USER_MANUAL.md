@@ -210,7 +210,7 @@ Open the layout editor from the panel options sidebar under **City Layout**.
 - **Add a building**: Select a type from the dropdown palette and click the **+** button. A new building appears at the center of the grid.
 - **Select a building**: Click it on the grid. The properties panel appears on the right.
 - **Move a building**: Drag it on the grid. Position snaps to integer coordinates.
-- **Edit properties**: When a building is selected, you can change its **name**, **type**, **display text**, **x**, **z**, and **rotation**.
+- **Edit properties**: When a building is selected, you can change its **name**, **type**, **display text**, **neon color** (Monitor Tube Giant only), **x**, **z**, and **rotation**.
 - **Delete a building**: Select it, then click the **Delete** button in the properties panel.
 
 The **name** field is critical — it is the key used to match rows in your query data to buildings in the city.
@@ -300,7 +300,23 @@ When a `msgN` column is present for a ring, the text scrolls continuously around
 
 This prefab is ideal for displaying alert messages from Grafana Alerting or log lines from Loki. Use Grafana transformations to reshape query results into `msg1`…`msg7` columns.
 
+#### Neon Color
+
+The base neon color of the Monitor Tube Giant can be configured per building in the layout editor via the **Neon Color** dropdown. Available presets:
+
+| Preset | Hex | Description |
+|--------|-----|-------------|
+| Cyan (default) | `#00ffff` | Tron/Matrix style |
+| Magenta | `#ff00ff` | Cyberpunk pink/purple |
+| Green | `#33ff66` | Classic terminal phosphor |
+| Blue | `#4488ff` | Blade Runner / JARVIS |
+| Orange | `#ffaa00` | Warm amber |
+| Red | `#ff4444` | Alert / danger |
+
+The chosen color applies to the ticker bands (background, text glow, scanlines), the holographic cylinder, the inner core, and the grid floor. Status overrides still apply: warning shifts to orange, critical shifts to red, and offline dims to gray — regardless of the chosen base color.
+
 - **Data fields**: `band1`…`band7` (0-100, gauge fill), `msg1`…`msg7` (scrolling text per ring)
+- **Neon Color**: Configurable per building in the layout editor. Defaults to Cyan.
 
 ### LED Facade
 
