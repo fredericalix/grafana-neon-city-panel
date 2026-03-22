@@ -10,6 +10,7 @@ import { MonitorTubeGiantPrefab } from './MonitorTubeGiant';
 import { BankPrefab } from './Bank';
 import { DisplayAPrefab } from './DisplayA';
 import { DisplayAGiantPrefab } from './DisplayAGiant';
+import { FarmSiloPrefab } from './FarmSilo';
 
 export { BasePrefab } from './BasePrefab';
 export { COLORS, getStatusColor, createBuildingMaterial, createMetalMaterial } from './materials';
@@ -23,6 +24,7 @@ export { MonitorTubeGiantPrefab } from './MonitorTubeGiant';
 export { BankPrefab } from './Bank';
 export { DisplayAPrefab } from './DisplayA';
 export { DisplayAGiantPrefab } from './DisplayAGiant';
+export { FarmSiloPrefab } from './FarmSilo';
 
 /**
  * Factory function to create the appropriate prefab based on building type.
@@ -70,6 +72,10 @@ export function createPrefab(building: Building): BasePrefab {
 
     case 'display_a_giant':
       prefab = new DisplayAGiantPrefab(building);
+      break;
+
+    case 'farm_silo':
+      prefab = new FarmSiloPrefab(building);
       break;
 
     default:

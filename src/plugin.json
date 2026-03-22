@@ -4,16 +4,26 @@
   "name": "Neon-City-Panel",
   "id": "whooktown-neoncity-panel",
   "info": {
-    "keywords": ["panel"],
-    "description": "",
+    "keywords": ["panel", "threejs", "3d", "cyberpunk", "monitoring", "city", "visualization", "neon", "webgl"],
+    "description": "Visualize monitored services as a cyberpunk 3D city powered by Three.js. Building color, glow, and animation react in real time to status and metric data from Grafana queries.",
     "author": {
-      "name": "Whooktown"
+      "name": "Whooktown",
+      "url": "https://github.com/fredericalix"
     },
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"
     },
-    "links": [],
+    "links": [
+      {
+        "name": "GitHub",
+        "url": "https://github.com/fredericalix/grafana-neon-city-panel"
+      },
+      {
+        "name": "License",
+        "url": "https://github.com/fredericalix/grafana-neon-city-panel/blob/main/LICENSE"
+      }
+    ],
     "screenshots": [],
     "version": "%VERSION%",
     "updated": "%TODAY%"

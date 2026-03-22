@@ -28,6 +28,7 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
     const quantityField = findField(frame.fields, 'quantity');
     const amountField = findField(frame.fields, 'amount');
     const ringCountField = findField(frame.fields, 'ringCount');
+    const fillField = findField(frame.fields, 'fill') ?? findField(frame.fields, 'level') ?? findField(frame.fields, 'filllevel');
 
     // MonitorTube per-band metric fields (band1..band7)
     const bandFields: Field[] = [];
@@ -95,6 +96,7 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
         monitorMessages: msgFields.length > 0
           ? msgFields.map((f) => String(f.values[i] ?? ''))
           : undefined,
+        siloFillLevel: fillField ? clampFillLevel(Number(fillField.values[i])) : undefined,
       });
     }
   }
@@ -330,4 +332,11 @@ function resolveBankQuantity(text: string): BankQuantity {
 
 function resolveRingCount(value: number): DisplayRingCount {
   return value === 2 ? 2 : 3;
+}
+
+function clampFillLevel(value: number): number | undefined {
+  if (isNaN(value)) {
+    return undefined;
+  }
+  return Math.max(0, Math.min(100, value));
 }

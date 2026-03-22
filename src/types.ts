@@ -81,6 +81,7 @@ export interface BuildingState {
   ringCount?: DisplayRingCount;
   monitorBands?: { value: number; label?: string }[];
   monitorMessages?: string[];
+  siloFillLevel?: number;
 }
 
 // =============================================================================
@@ -135,6 +136,7 @@ export const DEFAULT_OPTIONS: CityOptions = {
       { id: 'b6', name: 'cdn', type: 'led_facade', x: -8, z: 0, rotation: 0 },
       { id: 'b7', name: 'monitoring', type: 'monitor_tube', x: 8, z: 0, rotation: 0 },
       { id: 'b8', name: 'vault', type: 'bank', x: 0, z: -8, rotation: 0 },
+      { id: 'b9', name: 'energy-silo', type: 'farm_silo', x: 5, z: 5, rotation: 0 },
     ],
     roads: [
       '000000000010000000000', // z=-9

@@ -98,23 +98,25 @@ After `docker compose up`, Grafana is available at `http://localhost:3000`.
       { "text": "band2", "type": "number" },
       { "text": "band3", "type": "number" },
       { "text": "band4", "type": "number" },
-      { "text": "band5", "type": "number" }
+      { "text": "band5", "type": "number" },
+      { "text": "fill", "type": "number" }
     ],
     "rows": [
-      ["database",    "online",  "normal", "PRIMARY-DB-01", "PostgreSQL 16", "Uptime: 45d", null, null, null,   null,  null, null, null, null, null],
-      ["cache",       "warning", "fast",   "REDIS-CLUSTER", null,            null,          null, null, null,   null,  null, null, null, null, null],
-      ["api-gateway", "online",  "fast",   "GATEWAY-v3.2",  "REST API",      "192.168.1.50", 85, 72,   null,   null,  null, null, null, null, null],
-      ["web-server",  "online",  "normal", "NGINX-PROD",    null,            null,          null, null, null,   null,  null, null, null, null, null],
-      ["display",     "online",  "fast",   "SYS-STATUS",    "ALL SYSTEMS",   "NOMINAL",     null, null, null,   null,  null, null, null, null, null],
-      ["cdn",         "online",  "fast",   "CLOUDFLARE",    null,            null,          null, null, null,   null,  null, null, null, null, null],
-      ["monitoring",  "online",  "normal", "PROMETHEUS",    null,            null,          null, null, null,   null,  92,   65,   38,   80,   15],
-      ["vault",       "online",  "slow",   "VAULT-PROD",    null,            null,          null, null, "full", 42750, null, null, null, null, null]
+      ["database",     "online",  "normal", "PRIMARY-DB-01", "PostgreSQL 16", "Uptime: 45d", null, null, null,   null,  null, null, null, null, null, null],
+      ["cache",        "warning", "fast",   "REDIS-CLUSTER", null,            null,          null, null, null,   null,  null, null, null, null, null, null],
+      ["api-gateway",  "online",  "fast",   "GATEWAY-v3.2",  "REST API",      "192.168.1.50", 85, 72,   null,   null,  null, null, null, null, null, null],
+      ["web-server",   "online",  "normal", "NGINX-PROD",    null,            null,          null, null, null,   null,  null, null, null, null, null, null],
+      ["display",      "online",  "fast",   "SYS-STATUS",    "ALL SYSTEMS",   "NOMINAL",     null, null, null,   null,  null, null, null, null, null, null],
+      ["cdn",          "online",  "fast",   "CLOUDFLARE",    null,            null,          null, null, null,   null,  null, null, null, null, null, null],
+      ["monitoring",   "online",  "normal", "PROMETHEUS",    null,            null,          null, null, null,   null,  92,   65,   38,   80,   15,   null],
+      ["vault",        "online",  "slow",   "VAULT-PROD",    null,            null,          null, null, "full", 42750, null, null, null, null, null, null],
+      ["energy-silo",  "online",  "normal", null,            null,            null,          null, null, null,   null,  null, null, null, null, null, 72]
     ]
   }
 ]
 ```
 
-The `name` column values must match the building names configured in the [Layout Editor](#layout-editor). The default layout includes buildings named `database`, `cache`, `api-gateway`, `web-server`, `display`, `cdn`, `monitoring`, and `vault`.
+The `name` column values must match the building names configured in the [Layout Editor](#layout-editor). The default layout includes buildings named `database`, `cache`, `api-gateway`, `web-server`, `display`, `cdn`, `monitoring`, `vault`, and `energy-silo`.
 
 ---
 
@@ -171,6 +173,7 @@ These optional columns drive specific building visuals. Column name matching is 
 | `quantity` | string | Vault fill level: `none`, `low`, `medium`, `full` | Bank (gold bar display) |
 | `amount` | number | Numeric amount display | Bank (floating holographic number) |
 | `ringCount` | number | Number of display rings: `2` or `3` | Display A |
+| `fill` or `level` | number (0-100) | Silo fill gauge percentage | Farm Silo |
 
 ### Traffic fields
 
@@ -229,7 +232,7 @@ Switch to the **Roads** tab to edit the road network.
 
 ## Building Types
 
-The plugin ships with 10 building types. Unknown types fall back to Windmill.
+The plugin ships with 11 building types (9 standard + 2 giant variants). Unknown types fall back to Windmill.
 
 ### Windmill
 
@@ -327,6 +330,17 @@ The chosen color applies to the ticker bands (background, text glow, scanlines),
 
 - **Data fields**: `band1`…`band7` (0-100, gauge fill), `msg1`…`msg7` (scrolling text per ring)
 - **Neon Color**: Configurable per building in the layout editor. Defaults to Cyan.
+
+### Farm Silo
+
+Cyberpunk energy storage silo — a dark metallic cylinder with 5 rotating energy rings (alternating cyan/magenta), a dome top, and a glowing beacon. Inside, a translucent luminous cylinder acts as a fill gauge showing storage level.
+
+The fill level is driven by the `fill` (or `level`) data column (0-100). The inner cylinder grows from the base upward, with color changing based on level: green (0-33%), cyan (34-66%), magenta (67-100%). The fill animates smoothly between values.
+
+Ring rotation speed follows the activity level. In warning/critical status, the fill cylinder and rings change to orange/red. When offline, everything dims.
+
+- **Data fields**: `fill` or `level` (0-100, fill gauge percentage)
+- **Scale**: ~2x standard size for visibility
 
 ### LED Facade
 
@@ -470,6 +484,7 @@ Add `whooktown-neoncity-panel` to the `allow_loading_unsigned_plugins` setting i
 - Ensure your browser supports WebGL (test at [get.webgl.org](https://get.webgl.org)).
 - Enable hardware acceleration in your browser settings.
 - Try reducing the number of buildings if the GPU is under heavy load.
+- If the 3D engine crashes, the panel displays a "3D rendering error" alert instead of a blank screen. Check the browser console for details.
 
 **Detail tooltip not appearing on click**
 

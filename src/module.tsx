@@ -1,9 +1,17 @@
-import { PanelPlugin } from '@grafana/data';
+import React from 'react';
+import { PanelPlugin, PanelProps } from '@grafana/data';
 import { CityOptions, DEFAULT_OPTIONS } from './types';
 import { CityPanel } from './components/CityPanel';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { LayoutEditor } from './components/editors/LayoutEditor';
 
-export const plugin = new PanelPlugin<CityOptions>(CityPanel).setPanelOptions((builder) => {
+const CityPanelWithErrorBoundary: React.FC<PanelProps<CityOptions>> = (props) => (
+  <ErrorBoundary>
+    <CityPanel {...props} />
+  </ErrorBoundary>
+);
+
+export const plugin = new PanelPlugin<CityOptions>(CityPanelWithErrorBoundary).setPanelOptions((builder) => {
   return builder
     .addCustomEditor({
       id: 'layout-editor',
