@@ -2,7 +2,7 @@
 
 A Grafana panel plugin that renders a cyberpunk 3D city where each building represents a monitored service. Building appearance — color, glow, animation speed — reacts in real time to data from your Grafana queries.
 
-Built with Three.js. Features 10 building types, 3 custom shaders, animated road traffic, interactive tooltips & detail popups, floating labels, and a visual layout editor.
+Built with Three.js. Features 11 building types, 3 custom shaders, animated road traffic, interactive tooltips & detail popups, floating labels, and a visual layout editor.
 
 <!-- ![Neon City Panel](docs/screenshot.png) -->
 
