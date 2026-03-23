@@ -69,6 +69,12 @@ export const plugin = new PanelPlugin<CityOptions>(CityPanelWithErrorBoundary).s
       defaultValue: '',
     })
     .addBooleanSwitch({
+      path: 'enableTraffic',
+      name: 'Enable traffic',
+      description: 'Show animated light cycles on roads',
+      defaultValue: true,
+    })
+    .addBooleanSwitch({
       path: 'enableInteraction',
       name: 'Enable interaction',
       defaultValue: true,

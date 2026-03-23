@@ -83,14 +83,15 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
     engineRef.current.updateTraffic(trafficState.density, trafficState.speed);
   }, [data, options.trafficDensityField, options.trafficSpeedField]);
 
-  // Sync interaction and labels options
+  // Sync interaction, labels, and traffic options
   useEffect(() => {
     if (!engineRef.current) {
       return;
     }
     engineRef.current.setInteractionEnabled(options.enableInteraction !== false);
     engineRef.current.setLabelsVisible(options.showLabels === true);
-  }, [options.enableInteraction, options.showLabels]);
+    engineRef.current.setTrafficEnabled(options.enableTraffic !== false);
+  }, [options.enableInteraction, options.showLabels, options.enableTraffic]);
 
   return (
     <div

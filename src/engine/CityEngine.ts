@@ -373,6 +373,10 @@ export class CityEngine {
     }
   }
 
+  setTrafficEnabled(enabled: boolean): void {
+    this.trafficManager?.setEnabled(enabled);
+  }
+
   // ---------------------------------------------------------------------------
   // CONTEXT LOSS
   // ---------------------------------------------------------------------------

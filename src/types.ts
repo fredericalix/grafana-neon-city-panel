@@ -120,6 +120,7 @@ export interface CityOptions {
   nameField: string;
   trafficDensityField?: string;
   trafficSpeedField?: string;
+  enableTraffic?: boolean;
   enableInteraction?: boolean;
   showLabels?: boolean;
 }
