@@ -79,7 +79,7 @@ export interface BuildingState {
   bankQuantity?: BankQuantity;
   bankAmount?: number;
   ringCount?: DisplayRingCount;
-  monitorBands?: { value: number; label?: string }[];
+  monitorBands?: Array<{ value: number; label?: string }>;
   monitorMessages?: string[];
   siloFillLevel?: number;
 }

@@ -245,7 +245,7 @@ export class TowerAPrefab extends BasePrefab {
     const aberrationOffset = 1 + (this.currentRam / 100) * 5;
 
     // Determine text lines and vertical positions
-    const lines: { text: string; font: string; y: number }[] = [];
+    const lines: Array<{ text: string; font: string; y: number }> = [];
     const hasMultiple = this.displayText2 || this.displayText3;
 
     if (hasMultiple) {
@@ -472,7 +472,7 @@ export class TowerAPrefab extends BasePrefab {
   override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    if (this.status === 'offline') return;
+    if (this.status === 'offline') {return;}
 
     this.animTime += deltaTime;
     const speed = this.getActivitySpeed();

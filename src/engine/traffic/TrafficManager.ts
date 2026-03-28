@@ -25,11 +25,11 @@ export class TrafficManager {
   private pathGenerator: PathGenerator;
 
   private config: TrafficConfig;
-  private enabled: boolean = false;
+  private enabled = false;
   private roads: string[] | null = null;
 
-  private spawnTimer: number = 0;
-  private nextSpawnInterval: number = 1;
+  private spawnTimer = 0;
+  private nextSpawnInterval = 1;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -242,7 +242,7 @@ export class TrafficManager {
    * Remove the oldest vehicle (first in array) with fade-out
    */
   private removeOldestVehicle(): void {
-    if (this.vehicles.length === 0) return;
+    if (this.vehicles.length === 0) {return;}
 
     // Remove the first vehicle (oldest)
     const vehicle = this.vehicles.shift();

@@ -80,8 +80,8 @@ export class TrailSystem {
   private ageAttribute: THREE.BufferAttribute;
   private uvAttribute: THREE.BufferAttribute;
 
-  private needsUpdate: boolean = false;
-  private active: boolean = true;
+  private needsUpdate = false;
+  private active = true;
 
   constructor(color: number = TRAFFIC_COLORS.lightCycle.trail, options: TrailOptions = {}) {
     this.maxPoints = options.maxPoints ?? TRAIL_CONFIG.maxPoints;
@@ -167,7 +167,7 @@ export class TrailSystem {
    * Add a new point to the trail
    */
   addPoint(position: THREE.Vector3, direction: THREE.Vector3): void {
-    if (!this.active) return;
+    if (!this.active) {return;}
 
     // Add new point at the beginning (newest)
     this.points.unshift({
@@ -188,7 +188,7 @@ export class TrailSystem {
    * Update trail animation (age points and rebuild geometry)
    */
   update(deltaTime: number): void {
-    if (this.points.length === 0) return;
+    if (this.points.length === 0) {return;}
 
     // Age all points
     const ageIncrement = deltaTime * TRAIL_CONFIG.fadeSpeed;

@@ -514,7 +514,7 @@ export class MonitorTubePrefab extends BasePrefab {
   }
 
   private updateHalo(): void {
-    if (!this.haloMaterial) return;
+    if (!this.haloMaterial) {return;}
 
     let avgValue = 0;
     if (this.currentMetrics.bands.length > 0) {

@@ -478,7 +478,7 @@ export class LedFacadePrefab extends BasePrefab {
   override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    if (this.status === 'offline') return;
+    if (this.status === 'offline') {return;}
 
     this.animTime += deltaTime;
     const speed = this.getActivitySpeed();

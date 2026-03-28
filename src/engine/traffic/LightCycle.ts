@@ -16,10 +16,10 @@ export class LightCycle extends VehicleBase {
   private neonLines!: THREE.LineSegments;
   private glowCore!: THREE.Mesh;
 
-  private wheelRotation: number = 0;
+  private wheelRotation = 0;
   private neonColor: number;
 
-  constructor(useAltColor: boolean = false) {
+  constructor(useAltColor = false) {
     const neonColor = useAltColor
       ? TRAFFIC_COLORS.lightCycle.neonSecondary
       : TRAFFIC_COLORS.lightCycle.neonPrimary;

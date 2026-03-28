@@ -21,8 +21,8 @@ export abstract class VehicleBase {
   protected trail: TrailSystem;
 
   protected path: THREE.Vector3[] = [];
-  protected pathLength: number = 0;
-  protected pathProgress: number = 0;
+  protected pathLength = 0;
+  protected pathProgress = 0;
 
   protected position: THREE.Vector3 = new THREE.Vector3();
   protected direction: THREE.Vector3 = new THREE.Vector3(0, 0, 1);
@@ -30,19 +30,19 @@ export abstract class VehicleBase {
 
   protected speed: TrafficSpeed = 'normal';
   protected baseSpeed: number = BASE_VEHICLE_SPEED;
-  protected active: boolean = true;
-  protected disposing: boolean = false;
+  protected active = true;
+  protected disposing = false;
 
-  protected animTime: number = 0;
+  protected animTime = 0;
 
   public readonly id: string;
   public readonly type: VehicleType;
 
   // Flag to indicate vehicle needs a new path
-  public needsNewPath: boolean = false;
+  public needsNewPath = false;
 
   constructor(type: VehicleType, trailColor: number) {
-    this.id = `vehicle-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.id = `vehicle-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     this.type = type;
 
     this.group = new THREE.Group();
@@ -120,7 +120,7 @@ export abstract class VehicleBase {
    * Update the vehicle (called each frame)
    */
   update(deltaTime: number, pathGenerator: PathGenerator): void {
-    if (!this.active || this.path.length < 2) return;
+    if (!this.active || this.path.length < 2) {return;}
 
     this.animTime += deltaTime;
 
@@ -165,7 +165,7 @@ export abstract class VehicleBase {
    * Update vehicle rotation to face direction
    */
   protected updateRotation(): void {
-    if (this.direction.length() < 0.001) return;
+    if (this.direction.length() < 0.001) {return;}
 
     // Calculate rotation to face direction
     const angle = Math.atan2(this.direction.x, this.direction.z);

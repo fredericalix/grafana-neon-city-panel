@@ -135,7 +135,7 @@ export function calculateTargetVehicleCount(
   maxVehicles: number
 ): number {
   // Minimum 1 vehicle at any non-zero density
-  if (density <= 0) return 0;
+  if (density <= 0) {return 0;}
 
   // Max vehicles based on road coverage (30% of road cells)
   const maxByRoads = Math.floor(roadCellCount * 0.3);
@@ -159,7 +159,7 @@ export function getRandomPacketColor(): number {
 /**
  * Create emissive material for neon effect
  */
-export function createNeonMaterial(color: number, intensity: number = 1): THREE.MeshBasicMaterial {
+export function createNeonMaterial(color: number, intensity = 1): THREE.MeshBasicMaterial {
   return new THREE.MeshBasicMaterial({
     color,
     transparent: true,
@@ -170,7 +170,7 @@ export function createNeonMaterial(color: number, intensity: number = 1): THREE.
 /**
  * Create line material for neon edges
  */
-export function createNeonLineMaterial(color: number, opacity: number = 0.9): THREE.LineBasicMaterial {
+export function createNeonLineMaterial(color: number, opacity = 0.9): THREE.LineBasicMaterial {
   return new THREE.LineBasicMaterial({
     color,
     transparent: true,

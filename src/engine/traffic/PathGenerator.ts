@@ -84,7 +84,7 @@ export class PathGenerator {
    * Get a random road cell for spawning
    */
   getRandomSpawnCell(): RoadCell | null {
-    if (this.cellList.length === 0) return null;
+    if (this.cellList.length === 0) {return null;}
     return this.cellList[Math.floor(Math.random() * this.cellList.length)];
   }
 
@@ -92,14 +92,14 @@ export class PathGenerator {
    * Generate a random path starting from a given cell
    * Returns smoothed world-space coordinates
    */
-  generateRandomPath(startCell?: RoadCell, minLength: number = 5): THREE.Vector3[] {
+  generateRandomPath(startCell?: RoadCell, minLength = 5): THREE.Vector3[] {
     if (this.cellList.length === 0) {
       return [];
     }
 
     // Use provided start or pick random
     const start = startCell ?? this.getRandomSpawnCell();
-    if (!start) return [];
+    if (!start) {return [];}
 
     const path: RoadCell[] = [start];
     const visited = new Set<string>();
@@ -142,7 +142,7 @@ export class PathGenerator {
     if (path.length < minLength && path.length > 0) {
       current = path[path.length - 1];
       while (path.length < minLength) {
-        if (current.neighbors.length === 0) break;
+        if (current.neighbors.length === 0) {break;}
         const next = current.neighbors[Math.floor(Math.random() * current.neighbors.length)];
         path.push(next);
         current = next;
@@ -190,7 +190,7 @@ export class PathGenerator {
    * Create path that follows road grid strictly with slight corner rounding
    */
   private smoothPath(points: THREE.Vector3[], _segments: number): THREE.Vector3[] {
-    if (points.length < 2) return points;
+    if (points.length < 2) {return points;}
 
     const result: THREE.Vector3[] = [];
     const cornerRadius = 0.15; // Small radius for corner rounding
@@ -259,8 +259,8 @@ export class PathGenerator {
    * Get point on path at progress t (0-1)
    */
   getPointOnPath(path: THREE.Vector3[], t: number): THREE.Vector3 {
-    if (path.length === 0) return new THREE.Vector3();
-    if (path.length === 1) return path[0].clone();
+    if (path.length === 0) {return new THREE.Vector3();}
+    if (path.length === 1) {return path[0].clone();}
 
     const totalLength = this.calculatePathLength(path);
     const targetDist = t * totalLength;
@@ -282,7 +282,7 @@ export class PathGenerator {
    * Get direction at point on path
    */
   getDirectionOnPath(path: THREE.Vector3[], t: number): THREE.Vector3 {
-    if (path.length < 2) return new THREE.Vector3(0, 0, 1);
+    if (path.length < 2) {return new THREE.Vector3(0, 0, 1);}
 
     const epsilon = 0.01;
     const t1 = Math.max(0, t - epsilon);

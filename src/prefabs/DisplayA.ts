@@ -377,7 +377,7 @@ export class DisplayAPrefab extends BasePrefab {
   }
 
   private updateTextCanvas(index: number): void {
-    if (index >= this.ringContexts.length) return;
+    if (index >= this.ringContexts.length) {return;}
 
     const ctx = this.ringContexts[index];
     const canvas = this.ringCanvases[index];
@@ -529,7 +529,7 @@ export class DisplayAPrefab extends BasePrefab {
   override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    if (this.status === 'offline') return;
+    if (this.status === 'offline') {return;}
 
     this.animTime += deltaTime;
     const speed = this.getActivitySpeed();

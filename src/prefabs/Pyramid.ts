@@ -232,7 +232,7 @@ export class PyramidPrefab extends BasePrefab {
     const bandTiers = [2, 5, 8, 11, 13];
 
     for (const tierIndex of bandTiers) {
-      if (tierIndex >= TIER_CONFIG.length) continue;
+      if (tierIndex >= TIER_CONFIG.length) {continue;}
 
       const tier = TIER_CONFIG[tierIndex];
       let yPos = 0;

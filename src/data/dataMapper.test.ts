@@ -1,5 +1,4 @@
-import { FieldType, LoadingState } from '@grafana/data';
-import type { PanelData, Field, DataFrame } from '@grafana/data';
+import { FieldType, LoadingState, type PanelData, type Field, type DataFrame } from '@grafana/data';
 import { mapDataToStates, mapDataToTraffic } from './dataMapper';
 import type { CityOptions } from '../types';
 

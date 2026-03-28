@@ -772,7 +772,7 @@ export class BankPrefab extends BasePrefab {
   }
 
   protected onStatusChange(status: BuildingStatus): void {
-    if (!this.body || !this.dataFlow) return;
+    if (!this.body || !this.dataFlow) {return;}
 
     const isOffline = status === 'offline';
     const isWarning = status === 'warning';
@@ -857,8 +857,8 @@ export class BankPrefab extends BasePrefab {
       for (let i = 0; i < positions.count; i++) {
         let y = positions.getY(i);
         y += deltaTime * speed * (i % 2 === 0 ? 1 : -1);
-        if (y > 0.65) y = 0.1;
-        if (y < 0.1) y = 0.65;
+        if (y > 0.65) {y = 0.1;}
+        if (y < 0.1) {y = 0.65;}
         positions.setY(i, y);
       }
       positions.needsUpdate = true;
