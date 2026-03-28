@@ -41,6 +41,9 @@ ci/
 /playwright/.cache/
 /playwright/.auth/
 
+# Environment files
+.env*
+
 # Editor
 .idea
 
