@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-/** The 9 implemented building types */
+/** The 11 implemented building types */
 const BUILDING_TYPES = [
   { value: 'windmill', label: 'Windmill' },
   { value: 'tower_a', label: 'Tower A' },
@@ -12,6 +12,7 @@ const BUILDING_TYPES = [
   { value: 'bank', label: 'Bank' },
   { value: 'display_a', label: 'Display A' },
   { value: 'display_a_giant', label: 'Display A Giant' },
+  { value: 'farm_silo', label: 'Farm Silo' },
 ];
 
 interface BuildingPaletteProps {

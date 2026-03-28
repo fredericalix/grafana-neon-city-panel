@@ -22,9 +22,17 @@
       {
         "name": "License",
         "url": "https://github.com/fredericalix/grafana-neon-city-panel/blob/main/LICENSE"
+      },
+      {
+        "name": "Documentation",
+        "url": "https://github.com/fredericalix/grafana-neon-city-panel/blob/main/docs/USER_MANUAL.md"
       }
     ],
-    "screenshots": [],
+    "screenshots": [
+      { "name": "City Overview", "path": "img/screenshot-overview.png" },
+      { "name": "Building Detail Popup", "path": "img/screenshot-detail-popup.png" },
+      { "name": "Layout Editor", "path": "img/screenshot-layout-editor.png" }
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },

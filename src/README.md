@@ -1,50 +1,48 @@
-<!-- This README file is going to be the one displayed on the Grafana.com website for your plugin. Uncomment and replace the content here before publishing.
+# Neon City Panel
 
-Remove any remaining comments before publishing as these may be displayed on Grafana.com -->
+A Grafana panel plugin that renders a **cyberpunk 3D city** where each building represents a monitored service. Building appearance — color, glow, animation speed — reacts in real time to data from your Grafana queries.
 
-# Neon-City-Panel
+Built with [Three.js](https://threejs.org/). Features 11 building types, 3 custom GLSL shaders, animated road traffic, interactive tooltips & detail popups, floating labels, and a visual layout editor.
 
-<!-- To help maximize the impact of your README and improve usability for users, we propose the following loose structure:
+![City Overview](https://raw.githubusercontent.com/fredericalix/grafana-neon-city-panel/main/src/img/screenshot-overview.png)
 
-**BEFORE YOU BEGIN**
-- Ensure all links are absolute URLs so that they will work when the README is displayed within Grafana and Grafana.com
-- Be inspired ✨
-  - [grafana-polystat-panel](https://github.com/grafana/grafana-polystat-panel)
-  - [volkovlabs-variable-panel](https://github.com/volkovlabs/volkovlabs-variable-panel)
+## Features
 
-**ADD SOME BADGES**
+- **11 cyberpunk building types** — Windmill, Tower A, Tower B, Pyramid, Display A, Display A Giant, Bank, Monitor Tube, Monitor Tube Giant, LED Facade, Farm Silo
+- **Data-driven visuals** — status (online/warning/critical/offline) controls colors and glow; activity (slow/normal/fast) controls animation speed
+- **Road network with traffic** — animated Tron-style light cycles and data packets traveling along configurable road grids
+- **Interactive** — hover for tooltip, click for detail popup with animated neon connector lines
+- **Visual layout editor** — drag-and-drop building placement and road editing directly in the panel options
+- **Advanced data fields** — CRT text displays, holographic numbers, vault fill levels, gauge rings, silo fill gauges, monitor bands with scrolling messages
+- **3 custom GLSL shaders** — PyramidBeam, Hologram, MonitorTube
+- **Configurable thresholds** — numeric-to-status mapping with customizable ranges
 
-Badges convey useful information at a glance for users whether in the Catalog or viewing the source code. You can use the generator on [Shields.io](https://shields.io/badges/dynamic-json-badge) together with the Grafana.com API
-to create dynamic badges that update automatically when you publish a new version to the marketplace.
-
-- For the URL parameter use `https://grafana.com/api/plugins/your-plugin-id`.
-- Example queries:
-  - Downloads: `$.downloads`
-  - Catalog Version: `$.version`
-  - Grafana Dependency: `$.grafanaDependency`
-  - Signature Type: `$.versionSignatureType`
-- Optionally, for the logo parameter use `grafana`.
-
-Full example: ![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?logo=grafana&query=$.version&url=https://grafana.com/api/plugins/grafana-polystat-panel&label=Marketplace&prefix=v&color=F47A20)
-
-Consider other [badges](https://shields.io/badges) as you feel appropriate for your project.
-
-## Overview / Introduction
-Provide one or more paragraphs as an introduction to your plugin to help users understand why they should use it.
-
-Consider including screenshots:
-- in [plugin.json](https://grafana.com/developers/plugin-tools/reference/plugin-json#info) include them as relative links.
-- in the README ensure they are absolute URLs.
+![Building Detail Popup](https://raw.githubusercontent.com/fredericalix/grafana-neon-city-panel/main/src/img/screenshot-detail-popup.png)
 
 ## Requirements
-List any requirements or dependencies they may need to run the plugin.
+
+- Grafana >= 12.3.0
+- A modern browser with WebGL support
 
 ## Getting Started
-Provide a quick start on how to configure and use the plugin.
+
+1. Install the plugin from the Grafana plugin catalog, or download the latest release from [GitHub](https://github.com/fredericalix/grafana-neon-city-panel/releases).
+2. If installing manually, extract the archive into your Grafana plugins directory and allow the unsigned plugin:
+   ```ini
+   [plugins]
+   allow_loading_unsigned_plugins = whooktown-neoncity-panel
+   ```
+3. Restart Grafana.
+4. Create a new panel and select **Neon-City-Panel** as the visualization.
+5. Configure a data source that returns table data with at least `name` and `status` fields.
+6. Open the panel options to place buildings using the **Layout Editor**.
+
+![Layout Editor](https://raw.githubusercontent.com/fredericalix/grafana-neon-city-panel/main/src/img/screenshot-layout-editor.png)
 
 ## Documentation
-If your project has dedicated documentation available for users, provide links here. For help in following Grafana's style recommendations for technical documentation, refer to our [Writer's Toolkit](https://grafana.com/docs/writers-toolkit/).
 
-## Contributing
-Do you want folks to contribute to the plugin or provide feedback through specific means? If so, tell them how!
--->
+See the **[User Manual](https://github.com/fredericalix/grafana-neon-city-panel/blob/main/docs/USER_MANUAL.md)** for complete installation instructions, data format reference, building type details, configuration options, and data source examples (TestData, Prometheus).
+
+## License
+
+Apache-2.0 — see [LICENSE](https://github.com/fredericalix/grafana-neon-city-panel/blob/main/LICENSE).
