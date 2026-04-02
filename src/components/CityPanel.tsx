@@ -1,14 +1,20 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { PanelProps } from '@grafana/data';
 import { CityOptions, Building } from '../types';
 import { CityEngine } from '../engine/CityEngine';
 import { mapDataToStates, mapDataToTraffic } from '../data/dataMapper';
+import { computeDiagnostics } from '../data/diagnostics';
+import { DiagnosticOverlay } from './DiagnosticOverlay';
 
 interface Props extends PanelProps<CityOptions> {}
 
 export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<CityEngine | null>(null);
+
+  // Derive building states and diagnostics from data (pure computation)
+  const states = useMemo(() => mapDataToStates(data, options), [data, options]);
+  const diagnostics = useMemo(() => computeDiagnostics(data, options, states), [data, options, states]);
 
   // Initialize Three.js engine once
   useEffect(() => {
@@ -51,15 +57,13 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
     engineRef.current.setBuildings(buildings);
   }, [options.layout]);
 
-  // Update building states from Grafana data
+  // Push building states to Three.js engine
   useEffect(() => {
     if (!engineRef.current) {
       return;
     }
-
-    const states = mapDataToStates(data, options);
     engineRef.current.updateStates(states);
-  }, [data, options]);
+  }, [states]);
 
   // Sync roads from layout config
   useEffect(() => {
@@ -94,15 +98,10 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
   }, [options.enableInteraction, options.showLabels, options.enableTraffic]);
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        width,
-        height,
-        overflow: 'hidden',
-        position: 'relative',
-      }}
-    />
+    <div style={{ width, height, position: 'relative', overflow: 'hidden' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      <DiagnosticOverlay messages={diagnostics} />
+    </div>
   );
 };
 
