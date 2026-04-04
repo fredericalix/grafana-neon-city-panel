@@ -166,6 +166,30 @@ export class TooltipManager {
     return this.detailTooltips.has(buildingId);
   }
 
+  refreshDetailTooltips(states: Map<string, BuildingState>): void {
+    for (const [buildingId, entry] of this.detailTooltips) {
+      const newState = states.get(buildingId);
+      if (newState !== undefined) {
+        // Update status dot color in the header
+        const header = entry.element.firstElementChild as HTMLElement | null;
+        if (header) {
+          const dot = header.querySelector('span') as HTMLElement | null;
+          if (dot) {
+            const status: BuildingStatus = newState.status || 'online';
+            dot.style.backgroundColor = STATUS_COLORS[status];
+          }
+        }
+        // Replace body content with updated data
+        const oldBody = entry.element.children[1] as HTMLElement | undefined;
+        if (oldBody) {
+          oldBody.remove();
+        }
+        entry.element.appendChild(this.buildBody(newState));
+        entry.state = newState;
+      }
+    }
+  }
+
   update(): void {
     if (this.hoverPosition) {
       this.updateHoverPosition();
@@ -304,10 +328,15 @@ export class TooltipManager {
     header.appendChild(closeBtn);
     el.appendChild(header);
 
-    // Body
+    el.appendChild(this.buildBody(state));
+    return el;
+  }
+
+  private buildBody(state: BuildingState | null): HTMLElement {
     const body = document.createElement('div');
     applyStyle(body, DETAIL_BODY_STYLE);
 
+    const status: BuildingStatus = state?.status || 'online';
     this.addSection(body, 'Status', status);
     if (state?.activity) {
       this.addSection(body, 'Activity', state.activity);
@@ -328,8 +357,7 @@ export class TooltipManager {
       this.addSection(body, 'RAM', `${state.ramUsage.toFixed(1)}%`);
     }
 
-    el.appendChild(body);
-    return el;
+    return body;
   }
 
   private addSection(parent: HTMLElement, label: string, value: string): void {

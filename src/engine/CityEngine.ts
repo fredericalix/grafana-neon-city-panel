@@ -341,6 +341,8 @@ export class CityEngine {
         prefab.updateData(state);
       }
     }
+
+    this.tooltipManager?.refreshDetailTooltips(this.buildingStates);
   }
 
   // ---------------------------------------------------------------------------
