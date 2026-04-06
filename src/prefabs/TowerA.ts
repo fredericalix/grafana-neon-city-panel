@@ -241,8 +241,8 @@ export class TowerAPrefab extends BasePrefab {
 
     const flickerBrightness = 1 - this.flickerIntensity * 0.3;
 
-    // Aberration offset driven by RAM (0→±1px, 100→±6px)
-    const aberrationOffset = 1 + (this.currentRam / 100) * 5;
+    // Aberration offset driven by RAM (0→±1px, 100→±10px)
+    const aberrationOffset = 1 + (this.currentRam / 100) * 9;
 
     // Determine text lines and vertical positions
     const lines: Array<{ text: string; font: string; y: number }> = [];
@@ -286,15 +286,15 @@ export class TowerAPrefab extends BasePrefab {
       ctx.restore();
     }
 
-    // Scanlines — opacity driven by RAM (0→0.1, 100→0.35)
-    const scanlineOpacity = 0.1 + (this.currentRam / 100) * 0.25;
+    // Scanlines — opacity driven by RAM (0→0.1, 100→0.5)
+    const scanlineOpacity = 0.1 + (this.currentRam / 100) * 0.4;
     ctx.fillStyle = `rgba(0, 0, 0, ${scanlineOpacity})`;
     for (let y = this.scanlineOffset % 4; y < canvas.height; y += 4) {
       ctx.fillRect(0, y, canvas.width, 2);
     }
 
-    // Random noise/interference — probability driven by CPU (0→5%, 100→30%)
-    const noiseProbability = 0.05 + (this.currentCpu / 100) * 0.25;
+    // Random noise/interference — probability driven by CPU (0→5%, 100→40%)
+    const noiseProbability = 0.05 + (this.currentCpu / 100) * 0.35;
     if (Math.random() < noiseProbability) {
       const lineY = Math.random() * canvas.height;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
@@ -302,12 +302,54 @@ export class TowerAPrefab extends BasePrefab {
     }
 
     // Edge chromatic aberration strips
-    const edgeWidth = 10 + (this.currentRam / 100) * 10;
-    const edgeOpacity = 0.05 + (this.currentRam / 100) * 0.1;
+    const edgeWidth = 10 + (this.currentRam / 100) * 15;
+    const edgeOpacity = 0.05 + (this.currentRam / 100) * 0.15;
     ctx.fillStyle = `rgba(255, 0, 128, ${edgeOpacity})`;
     ctx.fillRect(0, 0, edgeWidth, canvas.height);
     ctx.fillStyle = `rgba(0, 255, 255, ${edgeOpacity})`;
     ctx.fillRect(canvas.width - edgeWidth, 0, edgeWidth, canvas.height);
+
+    // CPU/RAM bar gauges at bottom of screen
+    const hasCpu = this.currentCpu > 0;
+    const hasRam = this.currentRam > 0;
+    if (hasCpu || hasRam) {
+      const barY = canvas.height - 28;
+      const barHeight = 8;
+      const barMaxWidth = canvas.width * 0.35;
+      const barMargin = 12;
+
+      if (hasCpu) {
+        // CPU bar (left side) — cyan
+        const cpuWidth = (this.currentCpu / 100) * barMaxWidth;
+        ctx.font = '12px monospace';
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.6)';
+        ctx.textAlign = 'left';
+        ctx.fillText(`CPU ${Math.round(this.currentCpu)}%`, barMargin, barY - 4);
+        // Bar background
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.1)';
+        ctx.fillRect(barMargin, barY, barMaxWidth, barHeight);
+        // Bar fill
+        const cpuColor = this.currentCpu > 80 ? '255, 60, 60' : this.currentCpu > 60 ? '255, 180, 0' : '0, 255, 255';
+        ctx.fillStyle = `rgba(${cpuColor}, 0.8)`;
+        ctx.fillRect(barMargin, barY, cpuWidth, barHeight);
+      }
+
+      if (hasRam) {
+        // RAM bar (right side) — magenta
+        const ramWidth = (this.currentRam / 100) * barMaxWidth;
+        ctx.font = '12px monospace';
+        ctx.fillStyle = 'rgba(255, 0, 200, 0.6)';
+        ctx.textAlign = 'right';
+        ctx.fillText(`RAM ${Math.round(this.currentRam)}%`, canvas.width - barMargin, barY - 4);
+        // Bar background
+        ctx.fillStyle = 'rgba(255, 0, 200, 0.1)';
+        ctx.fillRect(canvas.width - barMargin - barMaxWidth, barY, barMaxWidth, barHeight);
+        // Bar fill
+        const ramColor = this.currentRam > 80 ? '255, 60, 60' : this.currentRam > 60 ? '255, 180, 0' : '255, 0, 200';
+        ctx.fillStyle = `rgba(${ramColor}, 0.8)`;
+        ctx.fillRect(canvas.width - barMargin - barMaxWidth, barY, ramWidth, barHeight);
+      }
+    }
 
     this.screenTexture.needsUpdate = true;
   }
@@ -484,10 +526,10 @@ export class TowerAPrefab extends BasePrefab {
 
     this.scanlineOffset += deltaTime * 60 * speed;
 
-    // Flicker probability driven by CPU (0→0.05, 100→0.4)
-    const flickerProb = (0.05 + (this.currentCpu / 100) * 0.35) * speed;
-    // Flicker max intensity driven by CPU (0→0.2, 100→0.7)
-    const flickerMax = 0.2 + (this.currentCpu / 100) * 0.5;
+    // Flicker probability driven by CPU (0→0.05, 100→0.5)
+    const flickerProb = (0.05 + (this.currentCpu / 100) * 0.45) * speed;
+    // Flicker max intensity driven by CPU (0→0.15, 100→0.8)
+    const flickerMax = 0.15 + (this.currentCpu / 100) * 0.65;
     if (Math.random() < flickerProb) {
       this.flickerIntensity = Math.random() * flickerMax;
     } else {

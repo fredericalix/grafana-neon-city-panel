@@ -298,8 +298,20 @@ function resolveStatusFromText(text: string): BuildingStatus {
     case 'stopped':
     case '0':
       return 'offline';
-    default:
+    default: {
+      // Handle numeric values that may arrive as floats (e.g. "1.0", "0.0000001")
+      // Common with Prometheus up/down metrics after Grafana transformations
+      const num = Number(lower);
+      if (!isNaN(num)) {
+        if (Math.round(num) === 1) {
+          return 'online';
+        }
+        if (Math.round(num) === 0) {
+          return 'offline';
+        }
+      }
       return 'offline';
+    }
   }
 }
 

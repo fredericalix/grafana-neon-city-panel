@@ -136,6 +136,32 @@ describe('mapDataToStates', () => {
       expect(states[0].status).toBe('online');
     });
 
+    it('handles numeric status field with float values (Prometheus up/down)', () => {
+      // Prometheus up{} returns 1/0 which Grafana may transform to floats
+      const frame = tableFrame({
+        name: { type: FieldType.string, values: ['a', 'b', 'c', 'd'] },
+        status: { type: FieldType.number, values: [1, 0, 1.0000001, 0.0000001] },
+      });
+
+      const states = mapDataToStates(panelData([frame]), makeOptions());
+      expect(states[0].status).toBe('online');
+      expect(states[1].status).toBe('offline');
+      expect(states[2].status).toBe('online');
+      expect(states[3].status).toBe('offline');
+    });
+
+    it('handles string representations of float status values', () => {
+      const frame = tableFrame({
+        name: { type: FieldType.string, values: ['a', 'b', 'c'] },
+        status: { type: FieldType.string, values: ['1.0', '0.0', '1.00'] },
+      });
+
+      const states = mapDataToStates(panelData([frame]), makeOptions());
+      expect(states[0].status).toBe('online');
+      expect(states[1].status).toBe('offline');
+      expect(states[2].status).toBe('online');
+    });
+
     it('resolves activity field values (slow / normal / fast)', () => {
       const frame = tableFrame({
         name: { type: FieldType.string, values: ['a', 'b', 'c'] },

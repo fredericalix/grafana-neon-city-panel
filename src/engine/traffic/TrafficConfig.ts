@@ -44,7 +44,7 @@ export interface PathSegment {
 export const DEFAULT_TRAFFIC_CONFIG: TrafficConfig = {
   density: 50,
   speed: 'normal',
-  maxVehicles: 30,
+  maxVehicles: 50,
   lightCycleRatio: 0.6,
   enabled: true,
 };
@@ -101,15 +101,15 @@ export const VEHICLE_HEIGHT = 0.05;
 
 // Spawn/despawn configuration
 export const SPAWN_CONFIG = {
-  minSpawnInterval: 0.5,  // Minimum seconds between spawns
+  minSpawnInterval: 0.3,  // Minimum seconds between spawns
   maxSpawnInterval: 2.0,  // Maximum seconds between spawns
   despawnDistance: 0.1,   // Distance from path end to despawn
 };
 
 // Performance limits
 export const PERFORMANCE_LIMITS = {
-  maxVehiclesDefault: 30,
-  maxVehiclesHigh: 50,
+  maxVehiclesDefault: 50,
+  maxVehiclesHigh: 80,
   maxTrailPointsPerVehicle: 50,
   lodDistanceSimplified: 15,
   lodDistancePoint: 30,
@@ -140,9 +140,10 @@ export function calculateTargetVehicleCount(
   // Max vehicles based on road coverage (30% of road cells)
   const maxByRoads = Math.floor(roadCellCount * 0.3);
 
-  // Use exponential curve for more noticeable density changes
+  // Exponential curve: amplifies low/mid density for more noticeable changes
   const normalizedDensity = density / 100;
-  const targetByDensity = Math.max(1, Math.floor(normalizedDensity * maxVehicles));
+  const curved = Math.pow(normalizedDensity, 0.6);
+  const targetByDensity = Math.max(1, Math.floor(curved * maxVehicles));
 
   // Return the minimum of all limits, but at least 1 if density > 0
   return Math.max(1, Math.min(targetByDensity, maxByRoads, maxVehicles));
