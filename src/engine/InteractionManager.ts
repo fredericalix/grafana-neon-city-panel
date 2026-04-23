@@ -110,8 +110,9 @@ export class InteractionManager {
   private findBuildingId(object: THREE.Object3D): string | null {
     let current: THREE.Object3D | null = object;
     while (current) {
-      if (current.userData.buildingId) {
-        return current.userData.buildingId as string;
+      const id: unknown = current.userData.buildingId;
+      if (typeof id === 'string' && id.length > 0) {
+        return id;
       }
       current = current.parent;
     }

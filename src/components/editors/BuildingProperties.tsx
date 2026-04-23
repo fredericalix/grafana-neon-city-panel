@@ -1,7 +1,7 @@
 import React from 'react';
-import { LayoutBuilding } from '../../types';
+import { BuildingType, LayoutBuilding } from '../../types';
 
-const BUILDING_TYPES = [
+const BUILDING_TYPES: Array<{ value: BuildingType; label: string }> = [
   { value: 'windmill', label: 'Windmill' },
   { value: 'tower_a', label: 'Tower A' },
   { value: 'tower_b', label: 'Tower B' },
@@ -118,7 +118,7 @@ export const BuildingProperties: React.FC<BuildingPropertiesProps> = ({ building
         <div style={labelStyle}>Type</div>
         <select
           value={building.type}
-          onChange={(e) => onUpdate(building.id, { type: e.target.value })}
+          onChange={(e) => onUpdate(building.id, { type: e.target.value as BuildingType })}
           style={inputStyle}
         >
           {BUILDING_TYPES.map((t) => (

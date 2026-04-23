@@ -1,5 +1,24 @@
 import { PanelData, Field } from '@grafana/data';
-import { BuildingState, BuildingStatus, BuildingActivity, BankQuantity, DisplayRingCount, TrafficState, TrafficSpeed, CityOptions } from '../types';
+import { BuildingState, BuildingStatus, BuildingActivity, BankQuantity, DisplayRingCount, TrafficState, TrafficSpeed, CityOptions, ThresholdConfig } from '../types';
+
+// Dedupe threshold warnings so we don't spam the console when the panel re-renders.
+const warnedThresholdKeys = new Set<string>();
+
+function validateThresholds(t: ThresholdConfig): void {
+  if (t.online >= t.warning && t.warning >= t.critical) {
+    return;
+  }
+  const key = `${t.online}|${t.warning}|${t.critical}`;
+  if (warnedThresholdKeys.has(key)) {
+    return;
+  }
+  warnedThresholdKeys.add(key);
+  console.warn(
+    `[neon-city-panel] Status thresholds must satisfy online >= warning >= critical. ` +
+    `Got online=${t.online}, warning=${t.warning}, critical=${t.critical}. ` +
+    `Values may be classified unexpectedly — fix the panel options.`
+  );
+}
 
 /**
  * Maps Grafana table data to BuildingState array.
@@ -8,6 +27,7 @@ import { BuildingState, BuildingStatus, BuildingActivity, BankQuantity, DisplayR
  * | name | status | value | activity | text1 | text2 | cpu | ram | ... |
  */
 export function mapDataToStates(data: PanelData, options: CityOptions): BuildingState[] {
+  validateThresholds(options.thresholds);
   const states: BuildingState[] = [];
 
   // First pass: try table format (frames with a name column from transformations)

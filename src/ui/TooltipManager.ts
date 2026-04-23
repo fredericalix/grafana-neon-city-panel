@@ -70,7 +70,7 @@ export class TooltipManager {
     const status: BuildingStatus = state?.status || 'online';
     const color = STATUS_COLORS[status];
 
-    this.hoverTooltip.innerHTML = '';
+    this.hoverTooltip.replaceChildren();
 
     const nameEl = document.createElement('div');
     nameEl.style.fontWeight = '600';
@@ -318,7 +318,18 @@ export class TooltipManager {
     applyStyle(closeBtn, DETAIL_CLOSE_STYLE);
     closeBtn.setAttribute('data-close', 'true');
     closeBtn.title = 'Close';
-    closeBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('width', '14');
+    svg.setAttribute('height', '14');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    const path = document.createElementNS(svgNs, 'path');
+    path.setAttribute('d', 'M18 6L6 18M6 6l12 12');
+    svg.appendChild(path);
+    closeBtn.appendChild(svg);
     closeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       this.hideDetailTooltip(building.id);

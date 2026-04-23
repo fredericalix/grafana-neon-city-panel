@@ -135,9 +135,9 @@ export abstract class VehicleBase {
       return;
     }
 
-    // Get position and direction on path
-    const newPosition = pathGenerator.getPointOnPath(this.path, this.pathProgress);
-    const newDirection = pathGenerator.getDirectionOnPath(this.path, this.pathProgress);
+    // Get position and direction on path (reuse cached pathLength to avoid a per-frame O(n) walk)
+    const newPosition = pathGenerator.getPointOnPath(this.path, this.pathProgress, this.pathLength);
+    const newDirection = pathGenerator.getDirectionOnPath(this.path, this.pathProgress, this.pathLength);
 
     // Smooth direction changes
     this.targetDirection.copy(newDirection);

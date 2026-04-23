@@ -79,7 +79,14 @@ export function createPrefab(building: Building): BasePrefab {
       break;
 
     default:
-      // Default to windmill for unknown types
+      // Runtime fallback: Grafana persists options as JSON so an older/unknown type
+      // string can reach us even though TypeScript narrows the union at compile time.
+      // We render a Windmill placeholder so the city still loads, but the operator
+      // needs to see that a building silently degraded.
+      console.warn(
+        `[neon-city-panel] Unknown building type "${building.type}" for "${building.name ?? building.id}". ` +
+        `Falling back to 'windmill'. Update the layout to one of the supported types.`
+      );
       prefab = new WindmillPrefab(building);
       break;
   }

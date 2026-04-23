@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { CityLayout, LayoutBuilding } from '../../types';
+import { BuildingType, CityLayout, LayoutBuilding } from '../../types';
 
 export type EditorMode = 'building' | 'road';
 
@@ -27,7 +27,7 @@ export function useLayoutEditor(value: CityLayout, onChange: (layout: CityLayout
   // ---- Building operations ----
 
   const addBuilding = useCallback(
-    (type: string) => {
+    (type: BuildingType) => {
       const id = `b${Date.now()}`;
       const name = `${type}-${value.buildings.length + 1}`;
       const newBuilding: LayoutBuilding = { id, name, type, x: 0, z: 0, rotation: 0 };

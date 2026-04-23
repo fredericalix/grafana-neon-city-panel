@@ -89,14 +89,14 @@ const hologramFragmentShader = `
     scanlineEffect *= (1.0 - fineScanline * uScanlineIntensity * 0.5);
 
     // Chromatic aberration - RGB color separation
+    // Branchless: when uChromaticAberration == 0 the mix offsets collapse to 0
+    // and chromaticColor == fresnelColor, so the conditional is unnecessary.
+    float aberration = uChromaticAberration * (0.5 + 0.5 * sin(uTime * 3.0));
+    float offsetR = fresnel * aberration;
+    float offsetB = fresnel * aberration * -1.0;
     vec3 chromaticColor = fresnelColor;
-    if (uChromaticAberration > 0.0) {
-      float aberration = uChromaticAberration * (0.5 + 0.5 * sin(uTime * 3.0));
-      float offsetR = fresnel * aberration;
-      float offsetB = fresnel * aberration * -1.0;
-      chromaticColor.r = mix(fresnelColor.r, glowColor.r, offsetR);
-      chromaticColor.b = mix(fresnelColor.b, glowColor.b * 0.7, -offsetB);
-    }
+    chromaticColor.r = mix(fresnelColor.r, glowColor.r, offsetR);
+    chromaticColor.b = mix(fresnelColor.b, glowColor.b * 0.7, -offsetB);
 
     // Flicker effect - random intensity variation
     float flicker = 1.0;

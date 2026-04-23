@@ -32,6 +32,7 @@ export class BankPrefab extends BasePrefab {
   private displayPanel!: THREE.Group;
   private amountCanvas!: HTMLCanvasElement;
   private amountContext!: CanvasRenderingContext2D;
+  private amountTexture!: THREE.CanvasTexture;
   private amountMesh!: THREE.Mesh;
   private projectionCone!: THREE.Mesh;
   private goldParticles!: THREE.Points;
@@ -510,11 +511,11 @@ export class BankPrefab extends BasePrefab {
     this.amountCanvas.height = 320;
     this.amountContext = this.amountCanvas.getContext('2d')!;
 
-    const texture = new THREE.CanvasTexture(this.amountCanvas);
-    texture.needsUpdate = true;
+    this.amountTexture = new THREE.CanvasTexture(this.amountCanvas);
+    this.amountTexture.needsUpdate = true;
 
     const displayMat = new THREE.MeshBasicMaterial({
-      map: texture,
+      map: this.amountTexture,
       transparent: true,
       opacity: 1.0,
       side: THREE.DoubleSide,
@@ -843,6 +844,13 @@ export class BankPrefab extends BasePrefab {
 
   protected onActivityChange(_activity: BuildingActivity): void {
     // Activity affects data flow speed
+  }
+
+  override dispose(): void {
+    // super.dispose() traverses meshes and frees materials+geometries,
+    // but CanvasTexture must be released explicitly.
+    this.amountTexture?.dispose();
+    super.dispose();
   }
 
   override update(deltaTime: number): void {

@@ -44,8 +44,25 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
       return;
     }
 
+    // `name` is the join key with Grafana query rows (dataMapper emits state.id = name),
+    // so duplicates silently merge state across distinct buildings. Warn early instead.
+    const seenNames = new Set<string>();
+    const duplicates = new Set<string>();
+    for (const b of options.layout.buildings) {
+      if (seenNames.has(b.name)) {
+        duplicates.add(b.name);
+      }
+      seenNames.add(b.name);
+    }
+    if (duplicates.size > 0) {
+      console.warn(
+        `[neon-city-panel] Layout contains duplicate building names: ${Array.from(duplicates).join(', ')}. ` +
+        `Tooltips, popups and data mapping will alias between them. Rename each building uniquely.`
+      );
+    }
+
     const buildings: Building[] = options.layout.buildings.map((b) => ({
-      id: b.name, // Use name as ID for data matching
+      id: b.name,
       name: b.name,
       type: b.type,
       location: { x: b.x, y: b.z },

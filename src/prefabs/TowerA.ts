@@ -511,6 +511,14 @@ export class TowerAPrefab extends BasePrefab {
     // Activity affects CRT effects intensity
   }
 
+  override dispose(): void {
+    // Free the CanvasTexture GPU resource and detach the canvas.
+    // super.dispose() traverses meshes and disposes materials+geometries,
+    // but does not release the texture referenced by the screen material map.
+    this.screenTexture?.dispose();
+    super.dispose();
+  }
+
   override update(deltaTime: number): void {
     super.update(deltaTime);
 

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { BuildingType } from '../../types';
 
 /** The 11 implemented building types */
-const BUILDING_TYPES = [
+const BUILDING_TYPES: Array<{ value: BuildingType; label: string }> = [
   { value: 'windmill', label: 'Windmill' },
   { value: 'tower_a', label: 'Tower A' },
   { value: 'tower_b', label: 'Tower B' },
@@ -16,17 +17,17 @@ const BUILDING_TYPES = [
 ];
 
 interface BuildingPaletteProps {
-  onAdd: (type: string) => void;
+  onAdd: (type: BuildingType) => void;
 }
 
 export const BuildingPalette: React.FC<BuildingPaletteProps> = ({ onAdd }) => {
-  const [selectedType, setSelectedType] = useState(BUILDING_TYPES[0].value);
+  const [selectedType, setSelectedType] = useState<BuildingType>(BUILDING_TYPES[0].value);
 
   return (
     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
       <select
         value={selectedType}
-        onChange={(e) => setSelectedType(e.target.value)}
+        onChange={(e) => setSelectedType(e.target.value as BuildingType)}
         style={{
           flex: 1,
           background: '#1a1a2e',

@@ -66,13 +66,11 @@ const ringBandFragmentShader = `
     float fillAngle = uValue / 100.0;
     float fill = step(angle, fillAngle);
 
-    vec3 color;
+    // Branchless tri-color ramp: Low -> Mid in [0, 0.5], Mid -> High in [0.5, 1].
     float normalizedValue = uValue / 100.0;
-    if (normalizedValue < 0.5) {
-      color = mix(uColorLow, uColorMid, normalizedValue * 2.0);
-    } else {
-      color = mix(uColorMid, uColorHigh, (normalizedValue - 0.5) * 2.0);
-    }
+    float lowMix = clamp(normalizedValue * 2.0, 0.0, 1.0);
+    float highMix = clamp(normalizedValue * 2.0 - 1.0, 0.0, 1.0);
+    vec3 color = mix(mix(uColorLow, uColorMid, lowMix), uColorHigh, highMix);
 
     float edgeWidth = 0.04;
     float edgeGlow = smoothstep(fillAngle - edgeWidth, fillAngle, angle);

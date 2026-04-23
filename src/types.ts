@@ -56,7 +56,7 @@ export interface TrafficState {
 export interface Building {
   id: string;
   name?: string;
-  type: BuildingType | string;
+  type: BuildingType;
   location: { x: number; y: number };
   orientation?: 'N' | 'S' | 'E' | 'W';
   defaultText?: string;
@@ -91,7 +91,7 @@ export interface BuildingState {
 export interface LayoutBuilding {
   id: string;
   name: string;
-  type: BuildingType | string;
+  type: BuildingType;
   x: number;
   z: number;
   rotation: number;

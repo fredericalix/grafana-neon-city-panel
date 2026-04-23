@@ -256,13 +256,15 @@ export class PathGenerator {
   }
 
   /**
-   * Get point on path at progress t (0-1)
+   * Get point on path at progress t (0-1).
+   * `cachedTotalLength` lets hot-path callers (vehicles in the render loop)
+   * avoid re-walking the path each frame.
    */
-  getPointOnPath(path: THREE.Vector3[], t: number): THREE.Vector3 {
+  getPointOnPath(path: THREE.Vector3[], t: number, cachedTotalLength?: number): THREE.Vector3 {
     if (path.length === 0) {return new THREE.Vector3();}
     if (path.length === 1) {return path[0].clone();}
 
-    const totalLength = this.calculatePathLength(path);
+    const totalLength = cachedTotalLength ?? this.calculatePathLength(path);
     const targetDist = t * totalLength;
 
     let accDist = 0;
@@ -279,17 +281,19 @@ export class PathGenerator {
   }
 
   /**
-   * Get direction at point on path
+   * Get direction at point on path.
+   * Computes the total path length once and reuses it for the two sample points.
    */
-  getDirectionOnPath(path: THREE.Vector3[], t: number): THREE.Vector3 {
+  getDirectionOnPath(path: THREE.Vector3[], t: number, cachedTotalLength?: number): THREE.Vector3 {
     if (path.length < 2) {return new THREE.Vector3(0, 0, 1);}
 
+    const totalLength = cachedTotalLength ?? this.calculatePathLength(path);
     const epsilon = 0.01;
     const t1 = Math.max(0, t - epsilon);
     const t2 = Math.min(1, t + epsilon);
 
-    const p1 = this.getPointOnPath(path, t1);
-    const p2 = this.getPointOnPath(path, t2);
+    const p1 = this.getPointOnPath(path, t1, totalLength);
+    const p2 = this.getPointOnPath(path, t2, totalLength);
 
     return p2.sub(p1).normalize();
   }

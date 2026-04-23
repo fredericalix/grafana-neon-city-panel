@@ -253,16 +253,7 @@ export class MonitorTubePrefab extends BasePrefab {
   }
 
   private rebuildBands(count: number): void {
-    // Clear existing
-    for (const mesh of this.bandMeshes) {
-      this.bandGroup.remove(mesh);
-      mesh.geometry.dispose();
-    }
-    for (const mat of this.bandMaterials) {
-      mat.dispose();
-    }
-    this.bandMeshes = [];
-    this.bandMaterials = [];
+    this.disposeBands();
 
     const cylinderHeight = CONFIG.cylinder.height;
     const bandSpacing = cylinderHeight / (count + 1);
@@ -554,22 +545,23 @@ export class MonitorTubePrefab extends BasePrefab {
   // CLEANUP
   // ===========================================================================
 
-  override dispose(): void {
-    this.gridFloorMaterial?.dispose();
-    this.cylinderMaterial?.dispose();
-    this.topCapMaterial?.dispose();
-    this.bottomCapMaterial?.dispose();
-    this.haloMaterial?.dispose();
-    this.outerShellMaterial?.dispose();
-    this.innerCoreMaterial?.dispose();
-
-    for (const mat of this.bandMaterials) {
-      mat.dispose();
-    }
-    for (const mesh of this.bandMeshes) {
+  private disposeBands(): void {
+    // Bands are added to bandGroup then removed without super.dispose() traversal,
+    // so geometry+material pairs must be released explicitly to avoid GPU leaks
+    // when bandCount changes at runtime.
+    for (let i = 0; i < this.bandMeshes.length; i++) {
+      const mesh = this.bandMeshes[i];
+      const mat = this.bandMaterials[i];
+      this.bandGroup?.remove(mesh);
       mesh.geometry.dispose();
+      mat?.dispose();
     }
+    this.bandMeshes = [];
+    this.bandMaterials = [];
+  }
 
+  override dispose(): void {
+    this.disposeBands();
     super.dispose();
   }
 }
