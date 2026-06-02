@@ -15,6 +15,12 @@ export class RoadNetwork {
   private groundGrid: THREE.LineSegments | null = null;
   private pulseTime = 0;
 
+  // Shared materials — created per build(), reused by every road object.
+  // Kept as fields so update()/disposeRoads() touch each one exactly once.
+  private roadMaterial: THREE.MeshStandardMaterial | null = null;
+  private neonEdgeMaterial: THREE.LineBasicMaterial | null = null;
+  private centerLineMaterial: THREE.LineBasicMaterial | null = null;
+
   constructor() {
     this.group = new THREE.Group();
     this.group.name = 'RoadNetwork';
@@ -49,7 +55,7 @@ export class RoadNetwork {
 
     const hasRoad = (gx: number, gz: number) => roadSet.has(`${gx},${gz}`);
 
-    // Shared materials
+    // Shared materials (stored as fields, disposed once in disposeRoads())
     const roadMaterial = new THREE.MeshStandardMaterial({
       color: COLORS.road,
       metalness: 0.4,
@@ -65,6 +71,9 @@ export class RoadNetwork {
       transparent: true,
       opacity: 0.5,
     });
+    this.roadMaterial = roadMaterial;
+    this.neonEdgeMaterial = neonEdgeMaterial;
+    this.centerLineMaterial = centerLineMaterial;
 
     // Merge all road surfaces into one geometry for performance
     const roadGeometries: THREE.BufferGeometry[] = [];
@@ -179,16 +188,12 @@ export class RoadNetwork {
   update(deltaTime: number): void {
     this.pulseTime += deltaTime;
 
-    // Neon edge pulse
-    const edgeOpacity = 0.7 + 0.3 * Math.sin(this.pulseTime * 2);
-    for (const edge of this.neonEdges) {
-      (edge.material as THREE.LineBasicMaterial).opacity = edgeOpacity;
+    // Materials are shared across every edge/line, so set opacity once each.
+    if (this.neonEdgeMaterial) {
+      this.neonEdgeMaterial.opacity = 0.7 + 0.3 * Math.sin(this.pulseTime * 2);
     }
-
-    // Center line pulse (slower, subtler)
-    const centerOpacity = 0.3 + 0.2 * Math.sin(this.pulseTime * 1.5);
-    for (const line of this.centerLines) {
-      (line.material as THREE.LineBasicMaterial).opacity = centerOpacity;
+    if (this.centerLineMaterial) {
+      this.centerLineMaterial.opacity = 0.3 + 0.2 * Math.sin(this.pulseTime * 1.5);
     }
 
     // Ground grid breathing
@@ -223,14 +228,21 @@ export class RoadNetwork {
     for (const obj of toRemove) {
       this.group.remove(obj);
       if (obj instanceof THREE.Mesh || obj instanceof THREE.Line) {
+        // Geometry is unique per object; materials are shared, so they are
+        // disposed once below rather than once per object.
         obj.geometry?.dispose();
-        if (obj.material instanceof THREE.Material) {
-          obj.material.dispose();
-        }
       }
     }
     this.neonEdges = [];
     this.centerLines = [];
+
+    // Dispose the shared materials exactly once.
+    this.roadMaterial?.dispose();
+    this.neonEdgeMaterial?.dispose();
+    this.centerLineMaterial?.dispose();
+    this.roadMaterial = null;
+    this.neonEdgeMaterial = null;
+    this.centerLineMaterial = null;
   }
 
   private addNeonEdge(

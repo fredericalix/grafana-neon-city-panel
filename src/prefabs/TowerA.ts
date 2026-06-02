@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Building, BuildingStatus, BuildingActivity, BuildingState } from '../types';
 import { BasePrefab } from './BasePrefab';
-import { COLORS } from './materials';
+import { COLORS, createCanvasTexture } from './materials';
 
 /**
  * TowerA Prefab - Massive Tron-style skyscraper with CRT screens
@@ -140,12 +140,10 @@ export class TowerAPrefab extends BasePrefab {
   }
 
   private createCRTScreens(): void {
-    this.screenCanvas = document.createElement('canvas');
-    this.screenCanvas.width = 512;
-    this.screenCanvas.height = 256;
-    this.screenContext = this.screenCanvas.getContext('2d')!;
-
-    this.screenTexture = new THREE.CanvasTexture(this.screenCanvas);
+    const screen = createCanvasTexture(512, 256);
+    this.screenCanvas = screen.canvas;
+    this.screenContext = screen.ctx;
+    this.screenTexture = screen.texture;
     this.screenTexture.minFilter = THREE.LinearFilter;
     this.screenTexture.magFilter = THREE.LinearFilter;
 

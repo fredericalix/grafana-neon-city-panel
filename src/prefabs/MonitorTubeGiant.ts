@@ -10,6 +10,7 @@ import {
   createOuterShellMaterial,
   createCapMaterial,
 } from './shaders/MonitorTubeShader';
+import { createCanvasTexture } from './materials';
 import { ScreenPalette, neonToPalette, DEFAULT_NEON } from './neonPalette';
 
 // =============================================================================
@@ -260,16 +261,13 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
       const yPos = bandSpacing * (i + 1);
 
       // Canvas for screen content
-      const canvas = document.createElement('canvas');
-      canvas.width = CONFIG.screen.canvasWidth;
-      canvas.height = CONFIG.screen.canvasHeight;
-      const ctx = canvas.getContext('2d')!;
+      const { canvas, ctx, texture } = createCanvasTexture(
+        CONFIG.screen.canvasWidth,
+        CONFIG.screen.canvasHeight,
+        { wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping }
+      );
       this.screenCanvases.push(canvas);
       this.screenContexts.push(ctx);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.wrapS = THREE.ClampToEdgeWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
       this.screenTextures.push(texture);
 
       // Flat band — open-ended cylinder wrapped around the central tube

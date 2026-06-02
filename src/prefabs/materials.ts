@@ -94,3 +94,39 @@ export function createMetalMaterial(): THREE.MeshStandardMaterial {
     roughness: 0.3,
   });
 }
+
+export interface CanvasTextureResult {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  texture: THREE.CanvasTexture;
+}
+
+/**
+ * Create a 2D canvas plus a THREE.CanvasTexture backed by it.
+ * Centralizes the createElement/getContext/CanvasTexture boilerplate shared
+ * by the text/screen prefabs (TowerA, TowerB, DisplayA, DisplayAGiant,
+ * MonitorTubeGiant). Remember to set `texture.needsUpdate = true` after
+ * drawing, and dispose the texture when done (BasePrefab.dispose handles
+ * textures attached to materials in the prefab group).
+ */
+export function createCanvasTexture(
+  width: number,
+  height: number,
+  opts: { wrapS?: THREE.Wrapping; wrapT?: THREE.Wrapping } = {}
+): CanvasTextureResult {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Failed to acquire 2D context for canvas texture');
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  if (opts.wrapS !== undefined) {
+    texture.wrapS = opts.wrapS;
+  }
+  if (opts.wrapT !== undefined) {
+    texture.wrapT = opts.wrapT;
+  }
+  return { canvas, ctx, texture };
+}

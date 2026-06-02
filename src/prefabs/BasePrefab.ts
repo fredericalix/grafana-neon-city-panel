@@ -89,16 +89,46 @@ export abstract class BasePrefab {
       if (object instanceof THREE.Mesh) {
         object.geometry?.dispose();
         if (Array.isArray(object.material)) {
-          object.material.forEach((m) => m.dispose());
-        } else {
-          object.material?.dispose();
+          object.material.forEach((m) => this.disposeMaterial(m));
+        } else if (object.material) {
+          this.disposeMaterial(object.material);
         }
       }
     });
   }
 
+  /**
+   * Dispose a material and any textures it references.
+   * THREE.Material.dispose() does NOT free the GPU textures it points to,
+   * so canvas/data textures leak unless disposed explicitly. Covers all
+   * standard texture slots used across the prefabs.
+   */
+  private disposeMaterial(material: THREE.Material): void {
+    const textureKeys: Array<keyof THREE.MeshStandardMaterial> = [
+      'map',
+      'emissiveMap',
+      'alphaMap',
+      'aoMap',
+      'normalMap',
+      'roughnessMap',
+      'metalnessMap',
+      'bumpMap',
+      'displacementMap',
+      'envMap',
+    ];
+    for (const key of textureKeys) {
+      const tex = (material as unknown as Record<string, unknown>)[key as string];
+      if (tex instanceof THREE.Texture) {
+        tex.dispose();
+      }
+    }
+    material.dispose();
+  }
+
   protected addGlowMesh(mesh: THREE.Mesh): void {
-    this.glowMeshes.push(mesh);
+    if (!this.glowMeshes.includes(mesh)) {
+      this.glowMeshes.push(mesh);
+    }
   }
 
   protected createGlowPoint(x: number, y: number, z: number, color: number, size = 0.1): THREE.Mesh {

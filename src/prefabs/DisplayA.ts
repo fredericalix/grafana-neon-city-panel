@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Building, BuildingStatus, BuildingActivity, BuildingState, DisplayRingCount } from '../types';
 import { BasePrefab } from './BasePrefab';
-import { COLORS } from './materials';
+import { COLORS, createCanvasTexture } from './materials';
 
 /**
  * DisplayA Prefab - Futuristic Display Tower (Tron Legacy Style)
@@ -280,17 +280,12 @@ export class DisplayAPrefab extends BasePrefab {
       ringGroup.position.y = ringHeights[i];
 
       // Create canvas for scrolling text (taller for better visibility)
-      const canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 128;
-      const ctx = canvas.getContext('2d')!;
+      const { canvas, ctx, texture } = createCanvasTexture(1024, 128, {
+        wrapS: THREE.RepeatWrapping,
+        wrapT: THREE.ClampToEdgeWrapping,
+      });
       this.ringCanvases.push(canvas);
       this.ringContexts.push(ctx);
-
-      // Create texture from canvas
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
       this.ringTextures.push(texture);
 
       // Inner decorative ring (smaller radius, closer to tower)

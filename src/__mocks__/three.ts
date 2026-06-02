@@ -269,7 +269,7 @@ class MockBoxGeometry {
   deleteAttribute = jest.fn();
   attributes = {};
   index = null;
-  setFromPoints = jest.fn();
+  setFromPoints = jest.fn().mockReturnThis();
   copy = jest.fn().mockReturnThis();
 }
 

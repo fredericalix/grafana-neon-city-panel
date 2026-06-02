@@ -122,5 +122,54 @@ describe('BasePrefab', () => {
       expect(glowMesh.geometry.dispose).toHaveBeenCalled();
       expect((glowMesh.material as THREE.MeshBasicMaterial).dispose).toHaveBeenCalled();
     });
+
+    it('disposes textures referenced by materials (regression: GPU texture leak)', () => {
+      // A prefab whose mesh material carries a CanvasTexture in its map slot.
+      // THREE.Material.dispose() does NOT free the texture, so BasePrefab.dispose
+      // must dispose it explicitly or it leaks GPU memory over the panel's life.
+      const canvas = document.createElement('canvas');
+      const texture = new THREE.CanvasTexture(canvas);
+      const disposeSpy = jest.spyOn(texture, 'dispose');
+
+      class TexturedPrefab extends BasePrefab {
+        protected build(): void {
+          const mat = new THREE.MeshStandardMaterial();
+          mat.map = texture;
+          const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 4, 4), mat);
+          this.group.add(mesh);
+        }
+        protected onStatusChange(): void {
+          /* no-op */
+        }
+        protected onActivityChange(): void {
+          /* no-op */
+        }
+      }
+
+      const prefab = new TexturedPrefab(makeBuilding());
+      prefab.initialize();
+      prefab.dispose();
+
+      expect(disposeSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('addGlowMesh', () => {
+    it('does not register the same mesh twice', () => {
+      // Guards against glow-mesh accumulation if build() is re-run.
+      const prefab = createTestPrefab();
+      const group = prefab.getObject();
+      const glowMesh = group.children[0] as THREE.Mesh;
+      const mat = glowMesh.material as THREE.MeshBasicMaterial;
+
+      // Re-add the same mesh through the protected API.
+      (prefab as unknown as { addGlowMesh(m: THREE.Mesh): void }).addGlowMesh(glowMesh);
+
+      // updateStatus iterates glowMeshes; a duplicate would not break color,
+      // so assert the internal array length directly.
+      const glowMeshes = (prefab as unknown as { glowMeshes: THREE.Mesh[] }).glowMeshes;
+      expect(glowMeshes.filter((m) => m === glowMesh)).toHaveLength(1);
+      expect(mat).toBeDefined();
+    });
   });
 });

@@ -119,13 +119,15 @@ export class PathGenerator {
       );
 
       if (unvisitedNeighbors.length === 0) {
-        // Dead end - try to continue from any unvisited connected cell
-        const anyUnvisited = current.neighbors.find(
-          n => !visited.has(this.cellKey(n.x, n.z)) === false &&
+        // Dead end: every neighbor is already visited. Hop to an adjacent
+        // *visited* cell that still has an unvisited neighbor, so the next
+        // iteration can resume exploring from there.
+        const escapeCell = current.neighbors.find(
+          n => visited.has(this.cellKey(n.x, n.z)) &&
                n.neighbors.some(nn => !visited.has(this.cellKey(nn.x, nn.z)))
         );
-        if (anyUnvisited) {
-          current = anyUnvisited;
+        if (escapeCell) {
+          current = escapeCell;
           continue;
         }
         break;

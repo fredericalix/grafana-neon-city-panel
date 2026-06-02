@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Building, BuildingStatus, BuildingActivity, BuildingState, DisplayRingCount } from '../types';
 import { BasePrefab } from './BasePrefab';
-import { COLORS } from './materials';
+import { COLORS, createCanvasTexture } from './materials';
 import { ScreenPalette, neonToPalette, DEFAULT_NEON } from './neonPalette';
 
 // =============================================================================
@@ -324,16 +324,13 @@ export class DisplayAGiantPrefab extends BasePrefab {
       ringGroup.position.y = heights[i];
 
       // Canvas for scrolling text
-      const canvas = document.createElement('canvas');
-      canvas.width = CONFIG.screen.canvasWidth;
-      canvas.height = CONFIG.screen.canvasHeight;
-      const ctx = canvas.getContext('2d')!;
+      const { canvas, ctx, texture } = createCanvasTexture(
+        CONFIG.screen.canvasWidth,
+        CONFIG.screen.canvasHeight,
+        { wrapS: THREE.RepeatWrapping, wrapT: THREE.ClampToEdgeWrapping }
+      );
       this.ringCanvases.push(canvas);
       this.ringContexts.push(ctx);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
       this.ringTextures.push(texture);
 
       // Inner decorative ring

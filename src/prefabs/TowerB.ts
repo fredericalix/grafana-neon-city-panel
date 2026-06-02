@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Building, BuildingStatus, BuildingActivity, BuildingState } from '../types';
 import { BasePrefab } from './BasePrefab';
-import { COLORS } from './materials';
+import { COLORS, createCanvasTexture } from './materials';
 import { createHologramMaterial, updateHologramMaterial, HOLOGRAM_PRESETS } from './shaders/HologramShader';
 
 /**
@@ -155,14 +155,13 @@ export class TowerBPrefab extends BasePrefab {
     this.group.add(this.textRing);
 
     // Create canvas for text texture
-    this.textCanvas = document.createElement('canvas');
-    this.textCanvas.width = 1024;
-    this.textCanvas.height = 128;
-    this.textContext = this.textCanvas.getContext('2d')!;
-
-    this.textTexture = new THREE.CanvasTexture(this.textCanvas);
-    this.textTexture.wrapS = THREE.RepeatWrapping;
-    this.textTexture.wrapT = THREE.ClampToEdgeWrapping;
+    const text = createCanvasTexture(1024, 128, {
+      wrapS: THREE.RepeatWrapping,
+      wrapT: THREE.ClampToEdgeWrapping,
+    });
+    this.textCanvas = text.canvas;
+    this.textContext = text.ctx;
+    this.textTexture = text.texture;
 
     // Create curved text band
     const ringRadius = this.TOWER_RADIUS + 0.25;
