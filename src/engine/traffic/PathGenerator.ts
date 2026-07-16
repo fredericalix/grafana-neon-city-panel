@@ -12,6 +12,10 @@ export class PathGenerator {
   private roadCells: Map<string, RoadCell> = new Map();
   private cellList: RoadCell[] = [];
 
+  // Reused temps for getDirectionOnPath (single-threaded, not re-entrant)
+  private readonly dirSampleA = new THREE.Vector3();
+  private readonly dirSampleB = new THREE.Vector3();
+
   /**
    * Parse roads array and build navigation graph.
    * Origin maps grid (0,0) to world-space coordinates.
@@ -261,10 +265,12 @@ export class PathGenerator {
    * Get point on path at progress t (0-1).
    * `cachedTotalLength` lets hot-path callers (vehicles in the render loop)
    * avoid re-walking the path each frame.
+   * `target` is filled and returned when provided, avoiding a per-call allocation.
    */
-  getPointOnPath(path: THREE.Vector3[], t: number, cachedTotalLength?: number): THREE.Vector3 {
-    if (path.length === 0) {return new THREE.Vector3();}
-    if (path.length === 1) {return path[0].clone();}
+  getPointOnPath(path: THREE.Vector3[], t: number, cachedTotalLength?: number, target?: THREE.Vector3): THREE.Vector3 {
+    const out = target ?? new THREE.Vector3();
+    if (path.length === 0) {return out.set(0, 0, 0);}
+    if (path.length === 1) {return out.copy(path[0]);}
 
     const totalLength = cachedTotalLength ?? this.calculatePathLength(path);
     const targetDist = t * totalLength;
@@ -272,32 +278,45 @@ export class PathGenerator {
     let accDist = 0;
     for (let i = 0; i < path.length - 1; i++) {
       const segmentLength = path[i].distanceTo(path[i + 1]);
+      if (segmentLength === 0) {
+        // Skip degenerate segments — dividing by them would produce NaN
+        continue;
+      }
       if (accDist + segmentLength >= targetDist) {
         const localT = (targetDist - accDist) / segmentLength;
-        return path[i].clone().lerp(path[i + 1], localT);
+        return out.copy(path[i]).lerp(path[i + 1], localT);
       }
       accDist += segmentLength;
     }
 
-    return path[path.length - 1].clone();
+    return out.copy(path[path.length - 1]);
   }
 
   /**
    * Get direction at point on path.
    * Computes the total path length once and reuses it for the two sample points.
+   * `target` is filled and returned when provided, avoiding a per-call allocation.
    */
-  getDirectionOnPath(path: THREE.Vector3[], t: number, cachedTotalLength?: number): THREE.Vector3 {
-    if (path.length < 2) {return new THREE.Vector3(0, 0, 1);}
+  getDirectionOnPath(path: THREE.Vector3[], t: number, cachedTotalLength?: number, target?: THREE.Vector3): THREE.Vector3 {
+    const out = target ?? new THREE.Vector3();
+    if (path.length < 2) {return out.set(0, 0, 1);}
 
     const totalLength = cachedTotalLength ?? this.calculatePathLength(path);
     const epsilon = 0.01;
     const t1 = Math.max(0, t - epsilon);
     const t2 = Math.min(1, t + epsilon);
 
-    const p1 = this.getPointOnPath(path, t1, totalLength);
-    const p2 = this.getPointOnPath(path, t2, totalLength);
+    const p1 = this.getPointOnPath(path, t1, totalLength, this.dirSampleA);
+    const p2 = this.getPointOnPath(path, t2, totalLength, this.dirSampleB);
 
-    return p2.sub(p1).normalize();
+    if (p1.distanceToSquared(p2) < 1e-12) {
+      // Coincident samples: normalizing a zero vector would yield NaN.
+      // Keep the caller's previous direction when a target was provided,
+      // otherwise fall back to the default direction.
+      return target ?? out.set(0, 0, 1);
+    }
+
+    return out.subVectors(p2, p1).normalize();
   }
 
   /**

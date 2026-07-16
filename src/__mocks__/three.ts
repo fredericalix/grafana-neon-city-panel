@@ -83,6 +83,13 @@ class MockVector3 {
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
+  distanceToSquared(v: MockVector3) {
+    const dx = this.x - v.x;
+    const dy = this.y - v.y;
+    const dz = this.z - v.z;
+    return dx * dx + dy * dy + dz * dz;
+  }
+
   lerp(v: MockVector3, t: number) {
     this.x += (v.x - this.x) * t;
     this.y += (v.y - this.y) * t;

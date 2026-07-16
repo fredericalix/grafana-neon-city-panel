@@ -20,6 +20,9 @@ export class InteractionManager {
   private hoveredId: string | null = null;
   private callbacks: InteractionCallbacks = {};
 
+  // Lazily rebuilt raycast targets; invalidated by the engine when buildings change
+  private objectCache: THREE.Object3D[] | null = null;
+
   // Track mouse state to differentiate click from drag
   private mouseDownPosition = { x: 0, y: 0 };
   private readonly CLICK_THRESHOLD = 5;
@@ -43,10 +46,12 @@ export class InteractionManager {
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onClick = this.onClick.bind(this);
+    this.onMouseLeave = this.onMouseLeave.bind(this);
 
     this.domElement.addEventListener('mousemove', this.onMouseMove);
     this.domElement.addEventListener('mousedown', this.onMouseDown);
     this.domElement.addEventListener('click', this.onClick);
+    this.domElement.addEventListener('mouseleave', this.onMouseLeave);
   }
 
   // ---------------------------------------------------------------------------
@@ -72,10 +77,19 @@ export class InteractionManager {
     // Hover detection is event-driven; nothing needed per frame
   }
 
+  /**
+   * Invalidate the cached raycast targets. Must be called whenever the set of
+   * building prefabs changes.
+   */
+  invalidateObjectCache(): void {
+    this.objectCache = null;
+  }
+
   dispose(): void {
     this.domElement.removeEventListener('mousemove', this.onMouseMove);
     this.domElement.removeEventListener('mousedown', this.onMouseDown);
     this.domElement.removeEventListener('click', this.onClick);
+    this.domElement.removeEventListener('mouseleave', this.onMouseLeave);
     this.domElement.style.cursor = 'default';
   }
 
@@ -92,12 +106,14 @@ export class InteractionManager {
   private raycast(): { id: string; point: THREE.Vector3 } | null {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    const objects: THREE.Object3D[] = [];
-    for (const prefab of this.buildingPrefabs.values()) {
-      objects.push(prefab.getObject());
+    if (!this.objectCache) {
+      this.objectCache = [];
+      for (const prefab of this.buildingPrefabs.values()) {
+        this.objectCache.push(prefab.getObject());
+      }
     }
 
-    const intersects = this.raycaster.intersectObjects(objects, true);
+    const intersects = this.raycaster.intersectObjects(this.objectCache, true);
     if (intersects.length > 0) {
       const id = this.findBuildingId(intersects[0].object);
       if (id) {
@@ -143,6 +159,14 @@ export class InteractionManager {
 
   private onMouseDown(event: MouseEvent): void {
     this.mouseDownPosition = { x: event.clientX, y: event.clientY };
+  }
+
+  private onMouseLeave(): void {
+    if (this.hoveredId) {
+      this.hoveredId = null;
+      this.callbacks.onHover?.(null, null);
+    }
+    this.domElement.style.cursor = 'default';
   }
 
   private onClick(event: MouseEvent): void {

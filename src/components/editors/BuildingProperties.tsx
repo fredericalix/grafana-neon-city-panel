@@ -1,16 +1,7 @@
 import React from 'react';
-import { BuildingType, LayoutBuilding } from '../../types';
+import { BuildingType, IMPLEMENTED_BUILDING_TYPES, LayoutBuilding } from '../../types';
 
-const BUILDING_TYPES: Array<{ value: BuildingType; label: string }> = [
-  { value: 'windmill', label: 'Windmill' },
-  { value: 'tower_a', label: 'Tower A' },
-  { value: 'tower_b', label: 'Tower B' },
-  { value: 'pyramid', label: 'Pyramid' },
-  { value: 'led_facade', label: 'LED Facade' },
-  { value: 'monitor_tube', label: 'Monitor Tube' },
-  { value: 'bank', label: 'Bank' },
-  { value: 'display_a', label: 'Display A' },
-];
+const BUILDING_TYPES = IMPLEMENTED_BUILDING_TYPES;
 
 const NEON_COLOR_PRESETS = [
   { value: '', label: 'Cyan (default)' },
@@ -136,7 +127,10 @@ export const BuildingProperties: React.FC<BuildingPropertiesProps> = ({ building
           <input
             type="number"
             value={building.x}
-            onChange={(e) => onUpdate(building.id, { x: parseInt(e.target.value, 10) || 0 })}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              onUpdate(building.id, { x: Number.isFinite(v) ? v : building.x });
+            }}
             style={inputStyle}
           />
         </div>
@@ -145,7 +139,10 @@ export const BuildingProperties: React.FC<BuildingPropertiesProps> = ({ building
           <input
             type="number"
             value={building.z}
-            onChange={(e) => onUpdate(building.id, { z: parseInt(e.target.value, 10) || 0 })}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              onUpdate(building.id, { z: Number.isFinite(v) ? v : building.z });
+            }}
             style={inputStyle}
           />
         </div>

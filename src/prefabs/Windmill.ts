@@ -109,7 +109,8 @@ export class WindmillPrefab extends BasePrefab {
       ];
 
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.LineSegments(geo, neonMat.clone());
+      // First edge takes the template material so it gets disposed with the group
+      const line = new THREE.LineSegments(geo, i === 0 ? neonMat : neonMat.clone());
       this.neonEdges.push(line);
       this.group.add(line);
     }
@@ -327,7 +328,7 @@ export class WindmillPrefab extends BasePrefab {
     this.energyParticles.visible = !isOffline;
 
     if (this.body.material instanceof THREE.MeshStandardMaterial) {
-      this.body.material.emissive = new THREE.Color(
+      this.body.material.emissive.setHex(
         isCritical ? 0x330000 : isWarning ? 0x331a00 : 0x000000
       );
     }

@@ -37,7 +37,6 @@ export class BankPrefab extends BasePrefab {
   private projectionCone!: THREE.Mesh;
   private goldParticles!: THREE.Points;
   private frameGlowBars: THREE.Mesh[] = [];
-  private scanLineOffset = 0;
 
   constructor(building: Building) {
     super(building);
@@ -160,7 +159,8 @@ export class BankPrefab extends BasePrefab {
       new THREE.Vector3(-hw, baseY, hd),
     ];
     const bottomGeo = new THREE.BufferGeometry().setFromPoints(bottomPoints);
-    const bottomLine = new THREE.LineSegments(bottomGeo, neonMat.clone());
+    // First segment takes the template material so it gets disposed with the group
+    const bottomLine = new THREE.LineSegments(bottomGeo, neonMat);
     this.neonEdges.push(bottomLine);
     this.group.add(bottomLine);
 
@@ -565,7 +565,8 @@ export class BankPrefab extends BasePrefab {
 
     // Top bar
     const topBarGeo = new THREE.BoxGeometry(width + 0.15, thickness, depth);
-    const topBar = new THREE.Mesh(topBarGeo, glowMat.clone());
+    // First bar takes the template material so it gets disposed with the group
+    const topBar = new THREE.Mesh(topBarGeo, glowMat);
     topBar.position.y = hh + thickness / 2;
     this.frameGlowBars.push(topBar);
     this.displayPanel.add(topBar);
@@ -605,7 +606,8 @@ export class BankPrefab extends BasePrefab {
 
     for (const corner of corners) {
       const diamondGeo = new THREE.OctahedronGeometry(0.05, 0);
-      const diamond = new THREE.Mesh(diamondGeo, diamondMat.clone());
+      // Diamonds are static decor never mutated individually — share the material
+      const diamond = new THREE.Mesh(diamondGeo, diamondMat);
       diamond.position.set(corner.x, corner.y, 0.02);
       diamond.rotation.z = Math.PI / 4;
       diamond.scale.set(1, 1, 0.3);
@@ -666,7 +668,7 @@ export class BankPrefab extends BasePrefab {
     // Scan lines
     ctx.strokeStyle = 'rgba(255, 215, 0, 0.08)';
     ctx.lineWidth = 1;
-    for (let y = this.scanLineOffset % 6; y < canvas.height; y += 6) {
+    for (let y = 0; y < canvas.height; y += 6) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(canvas.width, y);
@@ -755,7 +757,8 @@ export class BankPrefab extends BasePrefab {
   }
 
   updateAmount(amount: number | null): void {
-    if (amount === null || amount === undefined) {
+    // Treat non-finite numbers (NaN/Infinity) as absent, like null
+    if (amount === null || amount === undefined || !Number.isFinite(amount)) {
       this.displayPanel.visible = false;
     } else {
       this.displayPanel.visible = true;
@@ -806,7 +809,7 @@ export class BankPrefab extends BasePrefab {
     }
 
     if (this.body.material instanceof THREE.MeshStandardMaterial) {
-      this.body.material.emissive = new THREE.Color(
+      this.body.material.emissive.setHex(
         isCritical ? 0x330000 : isWarning ? 0x331a00 : 0x000000
       );
     }
@@ -947,8 +950,6 @@ export class BankPrefab extends BasePrefab {
         const conePulse = 0.08 + 0.06 * Math.sin(this.animTime * 2);
         this.projectionCone.material.opacity = conePulse;
       }
-
-      this.scanLineOffset += deltaTime * 30;
 
       if (this.amountMesh?.material instanceof THREE.MeshBasicMaterial) {
         const flicker = 0.85 + 0.15 * Math.sin(this.animTime * 15) * Math.sin(this.animTime * 7);

@@ -24,6 +24,7 @@ export class LabelManager {
 
   private tempV = new THREE.Vector3();
   private cameraPosition = new THREE.Vector3();
+  private worldPos = new THREE.Vector3();
 
   constructor(container: HTMLElement, camera: THREE.PerspectiveCamera, canvas: HTMLCanvasElement) {
     this.camera = camera;
@@ -80,7 +81,8 @@ export class LabelManager {
 
   private updateLabelPosition(labelInfo: LabelInfo): void {
     const el = labelInfo.element;
-    const worldPos = labelInfo.prefab.getObject().position.clone();
+    // World position, not local: the prefab group may be nested in a parent
+    const worldPos = labelInfo.prefab.getObject().getWorldPosition(this.worldPos);
     worldPos.y += 2.8;
 
     const distance = worldPos.distanceTo(this.cameraPosition);

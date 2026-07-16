@@ -530,15 +530,16 @@ describe('mapDataToStates', () => {
       expect(states[0].status).toBe('offline');
     });
 
-    it('handles null value in value field (resolves to offline via NaN)', () => {
+    it('handles null value in value field (treated as absent → offline)', () => {
       const frame = tableFrame({
         name: { type: FieldType.string, values: ['svc'] },
         value: { type: FieldType.number, values: [null] },
       });
 
       const states = mapDataToStates(panelData([frame]), makeOptions());
-      // Number(null) === 0 which is >= critical(0), so it's 'critical'
-      expect(states[0].status).toBe('critical');
+      // A missing value is not a 0 measurement — it must not classify as
+      // critical via Number(null) === 0.
+      expect(states[0].status).toBe('offline');
     });
 
     it('defaults status to offline when neither status nor value field exists', () => {
@@ -586,6 +587,37 @@ describe('mapDataToStates', () => {
       expect(states).toHaveLength(2);
       expect(states[0].id).toBe('db');
       expect(states[1].id).toBe('cache');
+    });
+
+    it('dedupes the same building appearing in multiple frames (last frame wins)', () => {
+      const frame1 = tableFrame({
+        name: { type: FieldType.string, values: ['db', 'cache'] },
+        status: { type: FieldType.string, values: ['online', 'online'] },
+      });
+      const frame2 = tableFrame({
+        name: { type: FieldType.string, values: ['db'] },
+        status: { type: FieldType.string, values: ['critical'] },
+      });
+
+      const states = mapDataToStates(panelData([frame1, frame2]), makeOptions());
+      expect(states).toHaveLength(2);
+      expect(states.find((s) => s.id === 'db')?.status).toBe('critical');
+      expect(states.find((s) => s.id === 'cache')?.status).toBe('online');
+    });
+
+    it('dedupes duplicate names case-insensitively (join key is lowercased)', () => {
+      const frame1 = tableFrame({
+        name: { type: FieldType.string, values: ['DB'] },
+        status: { type: FieldType.string, values: ['online'] },
+      });
+      const frame2 = tableFrame({
+        name: { type: FieldType.string, values: ['db'] },
+        status: { type: FieldType.string, values: ['warning'] },
+      });
+
+      const states = mapDataToStates(panelData([frame1, frame2]), makeOptions());
+      expect(states).toHaveLength(1);
+      expect(states[0].status).toBe('warning');
     });
   });
 
@@ -1041,5 +1073,41 @@ describe('mapDataToTraffic', () => {
 
     const result = mapDataToTraffic(panelData([frame]), 'density', 'speed');
     expect(result).toEqual({ density: 70, speed: 'slow' });
+  });
+
+  it('resolves density and speed living in separate frames', () => {
+    const densityFrame = tableFrame({
+      d: { type: FieldType.number, values: [30] },
+    });
+    const speedFrame = tableFrame({
+      s: { type: FieldType.string, values: ['fast'] },
+    });
+
+    const result = mapDataToTraffic(panelData([densityFrame, speedFrame]), 'd', 's');
+    expect(result).toEqual({ density: 30, speed: 'fast' });
+  });
+
+  it('skips a frame whose matching field has no values and reads a later frame', () => {
+    const emptyFields: Field[] = [field('d', FieldType.number, [])];
+    const emptyFrame = { fields: emptyFields, length: 0 } as DataFrame;
+    const dataFrame = tableFrame({
+      d: { type: FieldType.number, values: [42] },
+    });
+
+    const result = mapDataToTraffic(panelData([emptyFrame, dataFrame]), 'd', '');
+    expect(result.density).toBe(42);
+  });
+
+  it('keeps scanning past a frame that only resolves one of the two fields', () => {
+    const frame1 = tableFrame({
+      d: { type: FieldType.number, values: [10] },
+      other: { type: FieldType.string, values: ['x'] },
+    });
+    const frame2 = tableFrame({
+      s: { type: FieldType.string, values: ['slow'] },
+    });
+
+    const result = mapDataToTraffic(panelData([frame1, frame2]), 'd', 's');
+    expect(result).toEqual({ density: 10, speed: 'slow' });
   });
 });

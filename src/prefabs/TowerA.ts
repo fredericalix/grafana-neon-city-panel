@@ -3,6 +3,10 @@ import { Building, BuildingStatus, BuildingActivity, BuildingState } from '../ty
 import { BasePrefab } from './BasePrefab';
 import { COLORS, createCanvasTexture } from './materials';
 
+// Canvas re-render cadence (seconds) — ~15 Hz; per-frame 2D redraw + texture
+// upload is expensive and imperceptible above this rate.
+const SCREEN_REDRAW_INTERVAL = 1 / 15;
+
 /**
  * TowerA Prefab - Massive Tron-style skyscraper with CRT screens
  * Occupies 2x2 grid cells
@@ -22,6 +26,7 @@ export class TowerAPrefab extends BasePrefab {
   private displayText3 = '';
   private scanlineOffset = 0;
   private flickerIntensity = 0;
+  private screenRedrawAccum = 0;
 
   // Metric-reactive CRT effects (interpolated smoothly)
   private targetCpu = 0;
@@ -366,16 +371,17 @@ export class TowerAPrefab extends BasePrefab {
       [this.TOWER_WIDTH / 2, this.TOWER_DEPTH / 2],
     ];
 
-    for (const [cx, cz] of corners) {
+    corners.forEach(([cx, cz], i) => {
       const points = [
         new THREE.Vector3(cx, 0.15, cz),
         new THREE.Vector3(cx, 0.15 + this.TOWER_HEIGHT, cz),
       ];
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(geo, edgeMat.clone());
+      // First line takes the template material so it gets disposed with the group
+      const line = new THREE.Line(geo, i === 0 ? edgeMat : edgeMat.clone());
       this.neonEdges.push(line);
       this.group.add(line);
-    }
+    });
   }
 
   private createTopStructure(): void {
@@ -467,10 +473,11 @@ export class TowerAPrefab extends BasePrefab {
       this.displayText3 = state.text3;
     }
     if (state.cpuUsage !== undefined) {
-      this.targetCpu = Math.max(0, Math.min(100, state.cpuUsage));
+      // Non-finite values (NaN/Infinity) would pass through the clamp
+      this.targetCpu = Number.isFinite(state.cpuUsage) ? Math.max(0, Math.min(100, state.cpuUsage)) : 0;
     }
     if (state.ramUsage !== undefined) {
-      this.targetRam = Math.max(0, Math.min(100, state.ramUsage));
+      this.targetRam = Number.isFinite(state.ramUsage) ? Math.max(0, Math.min(100, state.ramUsage)) : 0;
     }
   }
 
@@ -499,7 +506,7 @@ export class TowerAPrefab extends BasePrefab {
     });
 
     if (this.body?.material instanceof THREE.MeshStandardMaterial) {
-      this.body.material.emissive = new THREE.Color(
+      this.body.material.emissive.setHex(
         isCritical ? 0x330000 : isWarning ? 0x331a00 : 0x000000
       );
     }
@@ -542,7 +549,12 @@ export class TowerAPrefab extends BasePrefab {
       this.flickerIntensity *= 0.9;
     }
 
-    this.updateScreenTexture();
+    // Throttle the CRT canvas re-render (first render happens in build())
+    this.screenRedrawAccum += deltaTime;
+    if (this.screenRedrawAccum >= SCREEN_REDRAW_INTERVAL) {
+      this.screenRedrawAccum = 0;
+      this.updateScreenTexture();
+    }
 
     const pulse = 0.7 + 0.3 * Math.sin(this.animTime * 3);
     this.neonEdges.forEach((edge) => {

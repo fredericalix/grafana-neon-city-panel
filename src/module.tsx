@@ -11,7 +11,22 @@ const CityPanelWithErrorBoundary: React.FC<PanelProps<CityOptions>> = (props) =>
   </ErrorBoundary>
 );
 
-export const plugin = new PanelPlugin<CityOptions>(CityPanelWithErrorBoundary).setPanelOptions((builder) => {
+export const plugin = new PanelPlugin<CityOptions>(CityPanelWithErrorBoundary)
+  .setMigrationHandler((panel) => {
+    // Normalize options saved by older plugin versions (or hand-edited
+    // dashboards): missing/partial layout or thresholds would otherwise crash
+    // the layout editor and the mapper.
+    const options = (panel.options ?? {}) as Partial<CityOptions>;
+    const layout =
+      options.layout && Array.isArray(options.layout.buildings) ? options.layout : DEFAULT_OPTIONS.layout;
+    return {
+      ...DEFAULT_OPTIONS,
+      ...options,
+      layout,
+      thresholds: { ...DEFAULT_OPTIONS.thresholds, ...options.thresholds },
+    };
+  })
+  .setPanelOptions((builder) => {
   return builder
     .addCustomEditor({
       id: 'layout-editor',

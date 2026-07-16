@@ -114,6 +114,8 @@ export class PyramidPrefab extends BasePrefab {
 
   private animTime = 0;
   private currentGlowColor = COLORS.glow.cyan;
+  // Color the window textures were last generated with (build() uses cyan)
+  private lastWindowTextureColor = COLORS.glow.cyan;
 
   constructor(building: Building) {
     super(building);
@@ -364,7 +366,6 @@ export class PyramidPrefab extends BasePrefab {
 
   private updateGlowColors(color: number): void {
     this.currentGlowColor = color;
-    const threeColor = new THREE.Color(color);
 
     for (const edge of this.neonEdges) {
       if (edge.material instanceof THREE.LineBasicMaterial) {
@@ -387,7 +388,7 @@ export class PyramidPrefab extends BasePrefab {
     }
 
     if (this.lightBeamMaterial) {
-      this.lightBeamMaterial.uniforms.uColor.value = threeColor;
+      this.lightBeamMaterial.uniforms.uColor.value.setHex(color);
     }
 
     if (this.groundGlow?.material instanceof THREE.MeshBasicMaterial) {
@@ -396,12 +397,19 @@ export class PyramidPrefab extends BasePrefab {
 
     for (const mesh of this.tierMeshes) {
       if (mesh.material instanceof THREE.MeshStandardMaterial) {
-        mesh.material.emissive = threeColor;
+        mesh.material.emissive.setHex(color);
       }
     }
   }
 
   private regenerateWindowTextures(color: number): void {
+    // Regenerating redraws canvases with random window lighting and re-uploads
+    // GPU textures — skip when the glow color is unchanged to avoid churn/flicker.
+    if (color === this.lastWindowTextureColor) {
+      return;
+    }
+    this.lastWindowTextureColor = color;
+
     let textureIndex = 0;
 
     for (let i = 0; i < TIER_CONFIG.length; i++) {
@@ -473,16 +481,16 @@ export class PyramidPrefab extends BasePrefab {
     for (const mesh of this.tierMeshes) {
       if (mesh.material instanceof THREE.MeshStandardMaterial) {
         if (isCritical) {
-          mesh.material.emissive = new THREE.Color(0x330000);
+          mesh.material.emissive.setHex(0x330000);
           mesh.material.emissiveIntensity = 0.3;
         } else if (isWarning) {
-          mesh.material.emissive = new THREE.Color(0x331a00);
+          mesh.material.emissive.setHex(0x331a00);
           mesh.material.emissiveIntensity = 0.2;
         } else if (isOffline) {
-          mesh.material.emissive = new THREE.Color(0x000000);
+          mesh.material.emissive.setHex(0x000000);
           mesh.material.emissiveIntensity = 0;
         } else {
-          mesh.material.emissive = new THREE.Color(glowColor);
+          mesh.material.emissive.setHex(glowColor);
           mesh.material.emissiveIntensity = 0.05;
         }
       }
@@ -521,7 +529,8 @@ export class PyramidPrefab extends BasePrefab {
   override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    this.animTime += deltaTime;
+    // Wrap to keep the float32 uTime uniform precise on long-running dashboards
+    this.animTime = (this.animTime + deltaTime) % 3600;
 
     if (this.lightBeamMaterial && this.status !== 'offline') {
       this.lightBeamMaterial.uniforms.uTime.value = this.animTime;

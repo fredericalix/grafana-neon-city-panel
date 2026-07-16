@@ -1,20 +1,7 @@
 import React, { useState } from 'react';
-import { BuildingType } from '../../types';
+import { BuildingType, IMPLEMENTED_BUILDING_TYPES } from '../../types';
 
-/** The 11 implemented building types */
-const BUILDING_TYPES: Array<{ value: BuildingType; label: string }> = [
-  { value: 'windmill', label: 'Windmill' },
-  { value: 'tower_a', label: 'Tower A' },
-  { value: 'tower_b', label: 'Tower B' },
-  { value: 'pyramid', label: 'Pyramid' },
-  { value: 'led_facade', label: 'LED Facade' },
-  { value: 'monitor_tube', label: 'Monitor Tube' },
-  { value: 'monitor_tube_giant', label: 'Monitor Tube Giant' },
-  { value: 'bank', label: 'Bank' },
-  { value: 'display_a', label: 'Display A' },
-  { value: 'display_a_giant', label: 'Display A Giant' },
-  { value: 'farm_silo', label: 'Farm Silo' },
-];
+const BUILDING_TYPES = IMPLEMENTED_BUILDING_TYPES;
 
 interface BuildingPaletteProps {
   onAdd: (type: BuildingType) => void;

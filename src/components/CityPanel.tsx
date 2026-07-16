@@ -44,15 +44,17 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
       return;
     }
 
-    // `name` is the join key with Grafana query rows (dataMapper emits state.id = name),
-    // so duplicates silently merge state across distinct buildings. Warn early instead.
+    // `name` (lowercased) is the join key with Grafana query rows (dataMapper
+    // emits state.id = lowercased name), so duplicates silently merge state
+    // across distinct buildings. Warn early instead.
     const seenNames = new Set<string>();
     const duplicates = new Set<string>();
     for (const b of options.layout.buildings) {
-      if (seenNames.has(b.name)) {
+      const key = b.name.toLowerCase();
+      if (seenNames.has(key)) {
         duplicates.add(b.name);
       }
-      seenNames.add(b.name);
+      seenNames.add(key);
     }
     if (duplicates.size > 0) {
       console.warn(
@@ -61,8 +63,10 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
       );
     }
 
+    // Lowercased id so the data join is case-insensitive (query names rarely
+    // match the layout's exact casing); `name` keeps the display casing.
     const buildings: Building[] = options.layout.buildings.map((b) => ({
-      id: b.name,
+      id: b.name.toLowerCase(),
       name: b.name,
       type: b.type,
       location: { x: b.x, y: b.z },

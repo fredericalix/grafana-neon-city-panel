@@ -69,6 +69,48 @@ describe('BasePrefab', () => {
     );
   });
 
+  describe('change guards', () => {
+    it('does not re-run onStatusChange when status is unchanged (per-refresh no-op)', () => {
+      const prefab = createTestPrefab();
+      const hook = jest.spyOn(
+        prefab as unknown as { onStatusChange(s: BuildingStatus): void },
+        'onStatusChange'
+      );
+
+      prefab.updateStatus('warning');
+      prefab.updateStatus('warning');
+      prefab.updateStatus('warning');
+      expect(hook).toHaveBeenCalledTimes(1);
+
+      prefab.updateStatus('critical');
+      expect(hook).toHaveBeenCalledTimes(2);
+    });
+
+    it('applies the first updateStatus even when it matches the default', () => {
+      const prefab = createTestPrefab();
+      const hook = jest.spyOn(
+        prefab as unknown as { onStatusChange(s: BuildingStatus): void },
+        'onStatusChange'
+      );
+
+      // Default internal status is 'online' — the first data push must still apply.
+      prefab.updateStatus('online');
+      expect(hook).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not re-run onActivityChange when activity is unchanged', () => {
+      const prefab = createTestPrefab();
+      const hook = jest.spyOn(
+        prefab as unknown as { onActivityChange(a: BuildingActivity): void },
+        'onActivityChange'
+      );
+
+      prefab.updateActivity('fast');
+      prefab.updateActivity('fast');
+      expect(hook).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('updateActivity', () => {
     it.each<BuildingActivity>(['slow', 'normal', 'fast'])(
       'accepts activity "%s" without error',
@@ -99,6 +141,19 @@ describe('BasePrefab', () => {
     it('does not throw with zero deltaTime', () => {
       const prefab = createTestPrefab();
       expect(() => prefab.update(0)).not.toThrow();
+    });
+
+    it('holds a fixed dim glow when offline instead of pulsing', () => {
+      const prefab = createTestPrefab();
+      const group = prefab.getObject();
+      const glowMesh = group.children[0] as THREE.Mesh;
+      const mat = glowMesh.material as THREE.MeshBasicMaterial;
+
+      prefab.updateStatus('offline');
+      for (let i = 0; i < 20; i++) {
+        prefab.update(0.05);
+        expect(mat.opacity).toBeCloseTo(0.15, 5);
+      }
     });
   });
 
@@ -151,6 +206,57 @@ describe('BasePrefab', () => {
       prefab.dispose();
 
       expect(disposeSpy).toHaveBeenCalled();
+    });
+
+    it('disposes Line, LineSegments and Points too (regression: non-Mesh GPU leak)', () => {
+      // Neon edges (Line/LineSegments) and particles (Points) are not
+      // instanceof THREE.Mesh — an instanceof-based dispose skips them all.
+      class NeonPrefab extends BasePrefab {
+        protected build(): void {
+          const lineGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 1, 0),
+          ]);
+          this.group.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial()));
+
+          const segGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(1, 0, 0),
+          ]);
+          this.group.add(new THREE.LineSegments(segGeo, new THREE.LineBasicMaterial()));
+
+          const ptsGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0)]);
+          this.group.add(new THREE.Points(ptsGeo, new THREE.PointsMaterial()));
+        }
+        protected onStatusChange(): void {
+          /* no-op */
+        }
+        protected onActivityChange(): void {
+          /* no-op */
+        }
+      }
+
+      const prefab = new NeonPrefab(makeBuilding());
+      prefab.initialize();
+
+      const geoSpies: jest.SpyInstance[] = [];
+      const matSpies: jest.SpyInstance[] = [];
+      prefab.getObject().traverse((object) => {
+        const { geometry, material } = object as THREE.Mesh;
+        if (geometry) {
+          geoSpies.push(jest.spyOn(geometry, 'dispose'));
+        }
+        if (material && !Array.isArray(material)) {
+          matSpies.push(jest.spyOn(material, 'dispose'));
+        }
+      });
+      expect(geoSpies).toHaveLength(3);
+
+      prefab.dispose();
+
+      for (const spy of [...geoSpies, ...matSpies]) {
+        expect(spy).toHaveBeenCalled();
+      }
     });
   });
 

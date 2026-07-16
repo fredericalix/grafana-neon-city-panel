@@ -28,7 +28,9 @@ function validateThresholds(t: ThresholdConfig): void {
  */
 export function mapDataToStates(data: PanelData, options: CityOptions): BuildingState[] {
   validateThresholds(options.thresholds);
-  const states: BuildingState[] = [];
+  // Keyed by lowercased name so the same building appearing in several
+  // frames yields one state (last frame wins) instead of duplicates.
+  const tableStates = new Map<string, BuildingState>();
 
   // First pass: try table format (frames with a name column from transformations)
   for (const frame of data.series) {
@@ -85,8 +87,10 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
       if (statusField) {
         status = resolveStatusFromText(String(statusField.values[i] ?? ''));
       } else if (valueField) {
-        const value = Number(valueField.values[i]);
-        status = resolveStatusFromValue(value, options.thresholds);
+        // Number(null) === 0 would classify a missing value as critical
+        // (0 >= default critical threshold) — treat absent values as offline.
+        const raw = valueField.values[i];
+        status = raw == null ? 'offline' : resolveStatusFromValue(Number(raw), options.thresholds);
       }
 
       // Resolve activity
@@ -98,7 +102,7 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
         }
       }
 
-      states.push({
+      tableStates.set(name.toLowerCase(), {
         id: name,
         status,
         activity,
@@ -121,8 +125,8 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
     }
   }
 
-  if (states.length > 0) {
-    return states;
+  if (tableStates.size > 0) {
+    return Array.from(tableStates.values());
   }
 
   // Second pass: Prometheus multi-query format.
@@ -258,32 +262,43 @@ export function mapDataToTraffic(
     return { density, speed };
   }
 
+  // Density and speed may live in different frames (one query each) — resolve
+  // them independently and keep scanning until both requested fields yielded
+  // a usable value. A frame whose field exists but is empty doesn't count.
+  let densityResolved = !densityField;
+  let speedResolved = !speedField;
+
   for (const frame of data.series) {
-    const dField = densityField ? findField(frame.fields, densityField) : undefined;
-    const sField = speedField ? findField(frame.fields, speedField) : undefined;
-
-    if (dField && dField.values.length > 0) {
-      const val = Number(dField.values[dField.values.length - 1]);
-      if (!isNaN(val)) {
-        density = Math.max(0, Math.min(100, val));
-      }
-    }
-
-    if (sField && sField.values.length > 0) {
-      const raw = String(sField.values[sField.values.length - 1]).toLowerCase().trim();
-      if (raw === 'slow' || raw === 'normal' || raw === 'fast') {
-        speed = raw;
-      } else {
-        // Numeric interpretation: <33 = slow, 34-66 = normal, >66 = fast
-        const num = Number(raw);
-        if (!isNaN(num)) {
-          speed = num < 33 ? 'slow' : num < 67 ? 'normal' : 'fast';
+    if (!densityResolved) {
+      const dField = findField(frame.fields, densityField);
+      if (dField && dField.values.length > 0) {
+        const val = Number(dField.values[dField.values.length - 1]);
+        if (!isNaN(val)) {
+          density = Math.max(0, Math.min(100, val));
+          densityResolved = true;
         }
       }
     }
 
-    // Take first frame with data
-    if (dField || sField) {
+    if (!speedResolved) {
+      const sField = findField(frame.fields, speedField);
+      if (sField && sField.values.length > 0) {
+        const raw = String(sField.values[sField.values.length - 1]).toLowerCase().trim();
+        if (raw === 'slow' || raw === 'normal' || raw === 'fast') {
+          speed = raw;
+          speedResolved = true;
+        } else {
+          // Numeric interpretation: <33 = slow, 34-66 = normal, >66 = fast
+          const num = Number(raw);
+          if (!isNaN(num)) {
+            speed = num < 33 ? 'slow' : num < 67 ? 'normal' : 'fast';
+            speedResolved = true;
+          }
+        }
+      }
+    }
+
+    if (densityResolved && speedResolved) {
       break;
     }
   }

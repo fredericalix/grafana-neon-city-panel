@@ -351,10 +351,18 @@ export class MonitorTubePrefab extends BasePrefab {
         this.cylinderMaterial.uniforms.uChromaticAberration.value = preset.chromaticAberration;
       }
 
-      const hologramColor = status === 'critical' ? MONITOR_TUBE_COLORS.red :
-                            status === 'offline' ? MONITOR_TUBE_COLORS.metalGray :
-                            MONITOR_TUBE_COLORS.orange;
-      this.cylinderMaterial.uniforms.uColor.value = new THREE.Color(hologramColor);
+      if (status === 'critical') {
+        this.cylinderMaterial.uniforms.uColor.value.setHex(MONITOR_TUBE_COLORS.red);
+      } else if (status === 'offline') {
+        this.cylinderMaterial.uniforms.uColor.value.setHex(MONITOR_TUBE_COLORS.metalGray);
+      } else if (status === 'warning') {
+        this.cylinderMaterial.uniforms.uColor.value.setHex(MONITOR_TUBE_COLORS.orange);
+      } else if (this.building.color) {
+        // Respect the user-chosen neon color when online (matches MonitorTubeGiant)
+        this.cylinderMaterial.uniforms.uColor.value.set(this.building.color);
+      } else {
+        this.cylinderMaterial.uniforms.uColor.value.setHex(MONITOR_TUBE_COLORS.orange);
+      }
     }
 
     // Update inner core
@@ -382,7 +390,7 @@ export class MonitorTubePrefab extends BasePrefab {
       const gridColor = status === 'critical' ? MONITOR_TUBE_COLORS.red :
                         status === 'warning' ? MONITOR_TUBE_COLORS.orange :
                         MONITOR_TUBE_COLORS.cyan;
-      this.gridFloorMaterial.uniforms.uGridColor.value = new THREE.Color(gridColor);
+      this.gridFloorMaterial.uniforms.uGridColor.value.setHex(gridColor);
     }
 
     // Update outer shell
@@ -413,7 +421,8 @@ export class MonitorTubePrefab extends BasePrefab {
   override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    this.animTime += deltaTime;
+    // Wrap to keep the float32 uTime uniforms precise on long-running dashboards
+    this.animTime = (this.animTime + deltaTime) % 3600;
 
     this.interpolateMetrics(deltaTime);
     this.animateBandRotation(deltaTime);
@@ -453,11 +462,11 @@ export class MonitorTubePrefab extends BasePrefab {
     for (let i = 0; i < this.bandMaterials.length; i++) {
       const mat = this.bandMaterials[i];
       if (i < this.currentMetrics.bands.length) {
-        mat.uniforms.uValue.value = this.currentMetrics.bands[i].value;
+        mat.uniforms.uValue.value = Math.max(0, Math.min(100, this.currentMetrics.bands[i].value));
 
         const bandData = this.currentMetrics.bands[i];
         if (bandData.color !== undefined) {
-          mat.uniforms.uColorLow.value = new THREE.Color(bandData.color);
+          mat.uniforms.uColorLow.value.setHex(bandData.color);
         }
       }
     }
@@ -495,8 +504,10 @@ export class MonitorTubePrefab extends BasePrefab {
     for (let i = 0; i < count; i++) {
       if (i < state.monitorBands.length) {
         const band = state.monitorBands[i];
-        this.targetMetrics.bands[i].value = band.value;
-        this.targetMetrics.bands[i].radius = band.value;
+        // Non-finite data (NaN/Infinity) would poison the lerp and shader uniforms
+        const value = Number.isFinite(band.value) ? Math.max(0, Math.min(100, band.value)) : 0;
+        this.targetMetrics.bands[i].value = value;
+        this.targetMetrics.bands[i].radius = value;
         if (band.label) {
           this.targetMetrics.bands[i].name = band.label;
         }

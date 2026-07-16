@@ -3,6 +3,10 @@ import { Building, BuildingStatus, BuildingActivity } from '../types';
 import { BasePrefab } from './BasePrefab';
 import { COLORS } from './materials';
 
+// Canvas re-render cadence (seconds) — ~15 Hz; per-frame 2D redraw + texture
+// upload is expensive and imperceptible above this rate.
+const LED_REDRAW_INTERVAL = 1 / 15;
+
 /**
  * LedFacade Prefab - Shenzhen-style LED animated facade tower
  * Features: Rectangular tower with dynamic LED canvas on all facades,
@@ -22,6 +26,7 @@ export class LedFacadePrefab extends BasePrefab {
   private patternPhase = 0;
   private currentPattern: 'waves' | 'bars' | 'pulse' | 'rain' = 'waves';
   private patternTimer = 0;
+  private ledRedrawAccum = 0;
 
   // Tower dimensions
   private readonly TOWER_WIDTH = 0.8;
@@ -385,7 +390,8 @@ export class LedFacadePrefab extends BasePrefab {
       new THREE.Vector3(-hw, 0.12 + th, -hd),
     ];
     const topGeo = new THREE.BufferGeometry().setFromPoints(topPoints);
-    const topLine = new THREE.Line(topGeo, edgeMat.clone());
+    // Top line takes the template material so it gets disposed with the group
+    const topLine = new THREE.Line(topGeo, edgeMat);
     this.neonEdges.push(topLine);
     this.group.add(topLine);
   }
@@ -465,7 +471,7 @@ export class LedFacadePrefab extends BasePrefab {
     });
 
     if (this.body?.material instanceof THREE.MeshStandardMaterial) {
-      this.body.material.emissive = new THREE.Color(
+      this.body.material.emissive.setHex(
         isCritical ? 0x330000 : isWarning ? 0x331a00 : 0x000000
       );
     }
@@ -497,8 +503,12 @@ export class LedFacadePrefab extends BasePrefab {
       }
     }
 
-    // Update LED texture
-    this.updateLedTexture();
+    // Update LED texture, throttled (first render happens in build())
+    this.ledRedrawAccum += deltaTime;
+    if (this.ledRedrawAccum >= LED_REDRAW_INTERVAL) {
+      this.ledRedrawAccum = 0;
+      this.updateLedTexture();
+    }
 
     // Pulse neon edges
     const pulse = 0.7 + 0.3 * Math.sin(this.animTime * 2);

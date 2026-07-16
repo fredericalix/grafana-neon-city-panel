@@ -18,6 +18,11 @@ export abstract class BasePrefab {
   protected glowMeshes: THREE.Mesh[] = [];
   protected status: BuildingStatus = 'online';
   protected activity: BuildingActivity = 'normal';
+  // Grafana refreshes call updateStatus/updateActivity on every poll; these
+  // flags let the first call apply unconditionally while later no-op calls
+  // skip the (potentially expensive) onStatusChange/onActivityChange work.
+  private statusApplied = false;
+  private activityApplied = false;
 
   protected animationState: AnimationState = {
     pulsePhase: Math.random() * Math.PI * 2,
@@ -49,17 +54,27 @@ export abstract class BasePrefab {
   }
 
   updateStatus(status: BuildingStatus): void {
+    if (this.statusApplied && status === this.status) {
+      return;
+    }
+    this.statusApplied = true;
     this.status = status;
-    const color = new THREE.Color(getStatusColor(status));
+    const color = getStatusColor(status);
     for (const mesh of this.glowMeshes) {
       if (mesh.material instanceof THREE.MeshBasicMaterial) {
-        mesh.material.color = color;
+        // setHex on the material's own Color — assigning a shared Color
+        // instance would alias every glow material to the same object.
+        mesh.material.color.setHex(color);
       }
     }
     this.onStatusChange(status);
   }
 
   updateActivity(activity: BuildingActivity): void {
+    if (this.activityApplied && activity === this.activity) {
+      return;
+    }
+    this.activityApplied = true;
     this.activity = activity;
     this.onActivityChange(activity);
   }
@@ -73,7 +88,10 @@ export abstract class BasePrefab {
     this.animationState.pulsePhase += deltaTime * pulseSpeed * Math.PI * 2;
 
     const pulseValue = (Math.sin(this.animationState.pulsePhase) + 1) / 2;
-    const opacity = 0.3 + 0.6 * pulseValue;
+    // Offline buildings hold a fixed dim glow instead of pulsing —
+    // otherwise this per-frame write overrides the dim opacity that
+    // subclasses set in onStatusChange.
+    const opacity = this.status === 'offline' ? 0.15 : 0.3 + 0.6 * pulseValue;
 
     for (const mesh of this.glowMeshes) {
       if (mesh.material instanceof THREE.MeshBasicMaterial) {
@@ -86,13 +104,14 @@ export abstract class BasePrefab {
 
   dispose(): void {
     this.group.traverse((object) => {
-      if (object instanceof THREE.Mesh) {
-        object.geometry?.dispose();
-        if (Array.isArray(object.material)) {
-          object.material.forEach((m) => this.disposeMaterial(m));
-        } else if (object.material) {
-          this.disposeMaterial(object.material);
-        }
+      // Line, LineSegments and Points carry geometry/material too but are
+      // not instanceof Mesh — check the properties, not the class.
+      const { geometry, material } = object as THREE.Mesh;
+      geometry?.dispose();
+      if (Array.isArray(material)) {
+        material.forEach((m) => this.disposeMaterial(m));
+      } else if (material) {
+        this.disposeMaterial(material);
       }
     });
   }

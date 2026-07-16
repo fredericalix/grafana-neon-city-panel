@@ -83,6 +83,10 @@ export class TrailSystem {
   private needsUpdate = false;
   private active = true;
 
+  // Reused temps for rebuildGeometry (called every frame while a trail is visible)
+  private readonly up = new THREE.Vector3(0, 1, 0);
+  private readonly perpendicular = new THREE.Vector3();
+
   constructor(color: number = TRAFFIC_COLORS.lightCycle.trail, options: TrailOptions = {}) {
     this.maxPoints = options.maxPoints ?? TRAIL_CONFIG.maxPoints;
     this.trailWidth = options.width ?? TRAIL_CONFIG.width;
@@ -199,8 +203,17 @@ export class TrailSystem {
     // Remove fully faded points
     while (this.points.length > 0 && this.points[this.points.length - 1].age >= 1) {
       this.points.pop();
-      this.needsUpdate = true;
     }
+
+    if (this.points.length === 0) {
+      this.geometry.setDrawRange(0, 0);
+      this.needsUpdate = false;
+      return;
+    }
+
+    // Ages changed above, so the GPU buffers must be re-uploaded every frame —
+    // otherwise the fade of an inactive (no new points) trail freezes between pops
+    this.needsUpdate = true;
 
     // Update time uniform for any animation effects
     this.material.uniforms.uTime.value += deltaTime;
@@ -220,8 +233,9 @@ export class TrailSystem {
     const ages = this.ageAttribute.array as Float32Array;
     const uvs = this.uvAttribute.array as Float32Array;
 
-    const up = new THREE.Vector3(0, 1, 0);
-    const perpendicular = new THREE.Vector3();
+    const { up, perpendicular } = this;
+    // Denominator so UV x spans the full 0-1 range (guarding single-point trails)
+    const uvSpan = Math.max(1, this.points.length - 1);
 
     for (let i = 0; i < this.points.length; i++) {
       const point = this.points[i];
@@ -242,7 +256,7 @@ export class TrailSystem {
       positions[vertexIndex * 3 + 1] = leftY;
       positions[vertexIndex * 3 + 2] = leftZ;
       ages[vertexIndex] = point.age;
-      uvs[vertexIndex * 2 + 0] = i / this.points.length;
+      uvs[vertexIndex * 2 + 0] = i / uvSpan;
       uvs[vertexIndex * 2 + 1] = 0;
 
       // Right vertex
@@ -254,7 +268,7 @@ export class TrailSystem {
       positions[(vertexIndex + 1) * 3 + 1] = rightY;
       positions[(vertexIndex + 1) * 3 + 2] = rightZ;
       ages[vertexIndex + 1] = point.age;
-      uvs[(vertexIndex + 1) * 2 + 0] = i / this.points.length;
+      uvs[(vertexIndex + 1) * 2 + 0] = i / uvSpan;
       uvs[(vertexIndex + 1) * 2 + 1] = 1;
     }
 

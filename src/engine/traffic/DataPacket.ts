@@ -112,8 +112,12 @@ export class DataPacket extends VehicleBase {
     this.particles = new THREE.Points(particleGeometry, particleMaterial);
     this.group.add(this.particles);
 
-    // Move everything up slightly so it floats above road
-    this.group.position.y = size * 0.5;
+    // Move everything up slightly so it floats above road.
+    // Offset the children, not the group: VehicleBase.update overwrites
+    // group.position every frame, which would cancel a group-level offset.
+    for (const child of this.group.children) {
+      child.position.y += size * 0.5;
+    }
   }
 
   updateAnimation(deltaTime: number): void {

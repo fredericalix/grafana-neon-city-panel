@@ -1,5 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert } from '@grafana/ui';
+import { Alert, Button } from '@grafana/ui';
 
 interface Props {
   children: ReactNode;
@@ -24,6 +24,12 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('Neon City: 3D rendering error', error, info.componentStack);
   }
 
+  // Transient failures (e.g. WebGL context loss) are recoverable: remounting
+  // the children rebuilds the whole Three.js engine from scratch.
+  private handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
   render() {
     if (this.state.hasError) {
       const { error } = this.state;
@@ -36,6 +42,9 @@ export class ErrorBoundary extends Component<Props, State> {
                 {error.message}
               </pre>
             )}
+            <Button size="sm" variant="secondary" onClick={this.handleRetry} style={{ marginTop: 8 }}>
+              Retry
+            </Button>
           </Alert>
         </div>
       );

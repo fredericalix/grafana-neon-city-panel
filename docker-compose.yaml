@@ -3,3 +3,9 @@ services:
     extends:
       file: .config/docker-compose-base.yaml
       service: grafana
+    build:
+      # The plugin is built against @grafana/* 13.x (grafanaDependency
+      # >=13.0.0) — default the dev server to Grafana 13 instead of the
+      # 12.3.2 default in .config/docker-compose-base.yaml.
+      args:
+        grafana_version: ${GRAFANA_VERSION:-13.1.0}

@@ -564,7 +564,8 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
   override update(deltaTime: number): void {
     super.update(deltaTime);
 
-    this.animTime += deltaTime;
+    // Wrap to keep the float32 uTime uniforms precise on long-running dashboards
+    this.animTime = (this.animTime + deltaTime) % 3600;
 
     this.animateBandRotation(deltaTime);
     this.updateTeleprinter(deltaTime);

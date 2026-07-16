@@ -3,6 +3,10 @@ import { Building, BuildingStatus, BuildingActivity, BuildingState, DisplayRingC
 import { BasePrefab } from './BasePrefab';
 import { COLORS, createCanvasTexture } from './materials';
 
+// Canvas re-render cadence (seconds) — ~15 Hz; per-frame 2D redraw + texture
+// upload is expensive and imperceptible above this rate.
+const TEXT_REDRAW_INTERVAL = 1 / 15;
+
 /**
  * DisplayA Prefab - Futuristic Display Tower (Tron Legacy Style)
  * Features: Tall cylindrical tower, holographic rings with scrolling text,
@@ -22,6 +26,7 @@ export class DisplayAPrefab extends BasePrefab {
   private ringTextures: THREE.CanvasTexture[] = [];
   private textOffsets: number[] = [0, 0, 0];
   private texts: string[];
+  private textRedrawAccum = 0;
 
   // Configuration
   private ringCount: DisplayRingCount = 3;
@@ -156,6 +161,7 @@ export class DisplayAPrefab extends BasePrefab {
     });
 
     // Vertical circuit lines
+    // First line takes the template material so it gets disposed with the group
     for (let i = 0; i < 6; i++) {
       const angle = (i / 6) * Math.PI * 2 + Math.PI / 12;
       const radius = this.TOWER_RADIUS + 0.005;
@@ -174,7 +180,7 @@ export class DisplayAPrefab extends BasePrefab {
       }
 
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(geo, circuitMat.clone());
+      const line = new THREE.Line(geo, i === 0 ? circuitMat : circuitMat.clone());
       this.circuitLines.push(line);
       this.group.add(line);
     }
@@ -232,7 +238,8 @@ export class DisplayAPrefab extends BasePrefab {
       ];
 
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(geo, edgeMat.clone());
+      // First edge takes the template material so it gets disposed with the group
+      const line = new THREE.Line(geo, i === 0 ? edgeMat : edgeMat.clone());
       this.neonEdges.push(line);
       this.group.add(line);
     }
@@ -507,7 +514,7 @@ export class DisplayAPrefab extends BasePrefab {
 
     // Body emissive for warning/critical
     if (this.body?.material instanceof THREE.MeshStandardMaterial) {
-      this.body.material.emissive = new THREE.Color(
+      this.body.material.emissive.setHex(
         isCritical ? 0x330000 : isWarning ? 0x331a00 : 0x000000
       );
     }
@@ -537,11 +544,19 @@ export class DisplayAPrefab extends BasePrefab {
       }
     });
 
-    // Scroll text on rings
+    // Scroll text on rings — offsets advance every frame, canvas redraw is
+    // throttled (first render happens in build(), data changes render directly)
+    this.textRedrawAccum += deltaTime;
+    const redrawTexts = this.textRedrawAccum >= TEXT_REDRAW_INTERVAL;
+    if (redrawTexts) {
+      this.textRedrawAccum = 0;
+    }
     for (let i = 0; i < 3; i++) {
       if (this.rings[i]?.visible) {
         this.textOffsets[i] += deltaTime * 80 * speed;
-        this.updateTextCanvas(i);
+        if (redrawTexts) {
+          this.updateTextCanvas(i);
+        }
       }
     }
 

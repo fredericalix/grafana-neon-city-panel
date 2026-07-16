@@ -29,7 +29,15 @@ export function useLayoutEditor(value: CityLayout, onChange: (layout: CityLayout
   const addBuilding = useCallback(
     (type: BuildingType) => {
       const id = `b${Date.now()}`;
-      const name = `${type}-${value.buildings.length + 1}`;
+      // Names are the (case-insensitive) join key with query data — after
+      // deletions `count + 1` can collide with an existing building.
+      const existingNames = new Set(value.buildings.map((b) => b.name.toLowerCase()));
+      let counter = value.buildings.length + 1;
+      let name = `${type}-${counter}`;
+      while (existingNames.has(name.toLowerCase())) {
+        counter++;
+        name = `${type}-${counter}`;
+      }
       const newBuilding: LayoutBuilding = { id, name, type, x: 0, z: 0, rotation: 0 };
       onChange({
         ...value,

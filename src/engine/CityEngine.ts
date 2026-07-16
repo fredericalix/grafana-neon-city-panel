@@ -26,7 +26,18 @@ export class CityEngine {
   private buildingStates: Map<string, BuildingState> = new Map();
   private roadNetwork!: RoadNetwork;
   private trafficManager: TrafficManager | null = null;
+  private trafficEnabled = true;
   private isDisposed = false;
+
+  // Render only while the panel is actually visible (tab shown + in viewport)
+  private isPageVisible = typeof document !== 'undefined' ? !document.hidden : true;
+  private isInViewport = true;
+  private intersectionObserver: IntersectionObserver | null = null;
+
+  // Scene statics owned by the engine (ground, void plane, lights) — kept so
+  // dispose() can free their GPU resources (incl. the shadow map).
+  private staticMeshes: THREE.Mesh[] = [];
+  private lights: THREE.Light[] = [];
 
   // Interaction subsystems
   private interactionManager: InteractionManager | null = null;
@@ -76,6 +87,17 @@ export class CityEngine {
     // Handle WebGL context loss
     this.renderer.domElement.addEventListener('webglcontextlost', this.onContextLost);
     this.renderer.domElement.addEventListener('webglcontextrestored', this.onContextRestored);
+
+    // Pause the render loop while the tab is hidden or the panel is scrolled
+    // out of view — a wall dashboard full of hidden panels otherwise burns GPU.
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
+    if (typeof IntersectionObserver !== 'undefined') {
+      this.intersectionObserver = new IntersectionObserver((entries) => {
+        this.isInViewport = entries[0]?.isIntersecting ?? true;
+        this.updateRunningState();
+      });
+      this.intersectionObserver.observe(container);
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -112,6 +134,8 @@ export class CityEngine {
     const rimLight = new THREE.DirectionalLight(0x00ffff, 0.5);
     rimLight.position.set(0, 5, -10);
     this.scene.add(rimLight);
+
+    this.lights.push(hemiLight, ambient, mainLight, fillLight, rimLight);
   }
 
   private setupGround(): void {
@@ -122,6 +146,7 @@ export class CityEngine {
     voidPlane.rotation.x = -Math.PI / 2;
     voidPlane.position.y = -0.5;
     this.scene.add(voidPlane);
+    this.staticMeshes.push(voidPlane);
 
     // Main ground
     const groundGeo = new THREE.PlaneGeometry(30, 30);
@@ -136,6 +161,7 @@ export class CityEngine {
     ground.position.y = -0.01;
     ground.receiveShadow = true;
     this.scene.add(ground);
+    this.staticMeshes.push(ground);
 
     // Tron-style ground grid (replaces static glow layer)
     this.roadNetwork = new RoadNetwork();
@@ -148,7 +174,9 @@ export class CityEngine {
   // ---------------------------------------------------------------------------
 
   start(): void {
-    if (this.isDisposed) {
+    // Re-entrancy guard: a second start() while the RAF loop is live would
+    // fork a second, uncancellable animation chain.
+    if (this.isDisposed || this.animationFrameId !== null) {
       return;
     }
     this.animate();
@@ -206,6 +234,9 @@ export class CityEngine {
 
     this.renderer.domElement.removeEventListener('webglcontextlost', this.onContextLost);
     this.renderer.domElement.removeEventListener('webglcontextrestored', this.onContextRestored);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.intersectionObserver?.disconnect();
+    this.intersectionObserver = null;
 
     this.interactionManager?.dispose();
     this.tooltipManager?.dispose();
@@ -218,6 +249,24 @@ export class CityEngine {
 
     this.roadNetwork.dispose();
     this.trafficManager?.dispose();
+
+    for (const mesh of this.staticMeshes) {
+      this.scene.remove(mesh);
+      mesh.geometry.dispose();
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach((m) => m.dispose());
+      } else {
+        mesh.material.dispose();
+      }
+    }
+    this.staticMeshes = [];
+
+    for (const light of this.lights) {
+      this.scene.remove(light);
+      // DirectionalLight.dispose() frees the shadow map render target.
+      light.dispose();
+    }
+    this.lights = [];
 
     this.controls.dispose();
     this.renderer.dispose();
@@ -236,6 +285,9 @@ export class CityEngine {
    * Call once after start().
    */
   setupInteraction(): void {
+    if (this.interactionManager) {
+      return;
+    }
     const canvas = this.renderer.domElement;
 
     this.tooltipManager = new TooltipManager(this.container, this.camera, canvas);
@@ -309,23 +361,48 @@ export class CityEngine {
         prefab.dispose();
         this.prefabs.delete(id);
         this.buildings.delete(id);
+        this.buildingStates.delete(id);
+        this.tooltipManager?.hideDetailTooltip(id);
       }
     }
 
     // Add/update buildings
     for (const building of buildings) {
+      const previous = this.buildings.get(building.id);
       this.buildings.set(building.id, building);
-      if (!this.prefabs.has(building.id)) {
-        const prefab = createPrefab(building);
-        const obj = prefab.getObject();
-        obj.position.set(building.location.x, 0, building.location.y);
-        this.scene.add(obj);
-        this.prefabs.set(building.id, prefab);
+
+      let prefab = this.prefabs.get(building.id);
+      // Type/color changes require a rebuild — the prefab geometry and
+      // materials are derived from them at construction time.
+      if (prefab && previous && (previous.type !== building.type || previous.color !== building.color)) {
+        this.scene.remove(prefab.getObject());
+        prefab.dispose();
+        this.prefabs.delete(building.id);
+        prefab = undefined;
       }
+
+      if (!prefab) {
+        prefab = createPrefab(building);
+        this.scene.add(prefab.getObject());
+        this.prefabs.set(building.id, prefab);
+        // Re-apply the last known data state so a rebuilt prefab doesn't
+        // flash its default look until the next Grafana refresh.
+        const state = this.buildingStates.get(building.id);
+        if (state) {
+          prefab.updateStatus(state.status);
+          prefab.updateActivity(state.activity);
+          prefab.updateData(state);
+        }
+      }
+
+      const obj = prefab.getObject();
+      obj.position.set(building.location.x, 0, building.location.y);
+      obj.rotation.y = orientationToRadians(building.orientation);
     }
 
-    // Sync labels with updated prefabs
+    // Sync labels and the raycast target cache with the updated prefabs
     this.labelManager?.setBuildings(this.prefabs);
+    this.interactionManager?.invalidateObjectCache();
   }
 
   /**
@@ -333,8 +410,11 @@ export class CityEngine {
    */
   updateStates(states: BuildingState[]): void {
     for (const state of states) {
-      this.buildingStates.set(state.id, state);
-      const prefab = this.prefabs.get(state.id);
+      // Case-insensitive join: building ids are lowercased in CityPanel,
+      // query names keep whatever casing the datasource returns.
+      const key = state.id.toLowerCase();
+      this.buildingStates.set(key, state);
+      const prefab = this.prefabs.get(key);
       if (prefab) {
         prefab.updateStatus(state.status);
         prefab.updateActivity(state.activity);
@@ -362,7 +442,9 @@ export class CityEngine {
       this.trafficManager = new TrafficManager(this.scene);
     }
     this.trafficManager.setRoads(roads, origin);
-    this.trafficManager.setEnabled(true);
+    // Respect the user's enableTraffic option — road edits must not
+    // force traffic back on.
+    this.trafficManager.setEnabled(this.trafficEnabled);
   }
 
   /**
@@ -376,6 +458,7 @@ export class CityEngine {
   }
 
   setTrafficEnabled(enabled: boolean): void {
+    this.trafficEnabled = enabled;
     this.trafficManager?.setEnabled(enabled);
   }
 
@@ -392,6 +475,45 @@ export class CityEngine {
   };
 
   private onContextRestored = (): void => {
+    // Discard the wall-clock gap accumulated while the context was lost,
+    // otherwise the first delta teleports every animation.
+    this.clock.getDelta();
     this.start();
   };
+
+  // ---------------------------------------------------------------------------
+  // VISIBILITY — pause rendering when the panel can't be seen
+  // ---------------------------------------------------------------------------
+
+  private onVisibilityChange = (): void => {
+    this.isPageVisible = !document.hidden;
+    this.updateRunningState();
+  };
+
+  private updateRunningState(): void {
+    if (this.isDisposed) {
+      return;
+    }
+    const shouldRun = this.isPageVisible && this.isInViewport;
+    if (shouldRun && this.animationFrameId === null) {
+      this.clock.getDelta();
+      this.start();
+    } else if (!shouldRun && this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+}
+
+function orientationToRadians(orientation: Building['orientation']): number {
+  switch (orientation) {
+    case 'E':
+      return -Math.PI / 2;
+    case 'S':
+      return Math.PI;
+    case 'W':
+      return Math.PI / 2;
+    default:
+      return 0;
+  }
 }

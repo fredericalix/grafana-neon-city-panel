@@ -79,8 +79,9 @@ export class LightCycle extends VehicleBase {
     this.wheelFront.position.y = dim.height * 0.35;
     this.group.add(this.wheelFront);
 
-    // Rear wheel
-    this.wheelRear = new THREE.Mesh(wheelGeometry, wheelMaterial.clone());
+    // Rear wheel — own geometry copy: the base dispose traverse disposes each
+    // mesh's geometry, so sharing one would dispose it twice
+    this.wheelRear = new THREE.Mesh(wheelGeometry.clone(), wheelMaterial.clone());
     this.wheelRear.rotation.y = Math.PI / 2;
     this.wheelRear.position.z = -dim.length * 0.35;
     this.wheelRear.position.y = dim.height * 0.35;

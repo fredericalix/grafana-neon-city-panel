@@ -35,6 +35,10 @@ export abstract class VehicleBase {
 
   protected animTime = 0;
 
+  // Reused per-frame temps to avoid allocating Vector3s in the render loop
+  private readonly tempPoint = new THREE.Vector3();
+  private readonly tempDirection = new THREE.Vector3(0, 0, 1);
+
   public readonly id: string;
   public readonly type: VehicleType;
 
@@ -124,6 +128,13 @@ export abstract class VehicleBase {
 
     this.animTime += deltaTime;
 
+    // Degenerate path (all points coincident): dividing by pathLength would
+    // yield Infinity/NaN progress, so treat it as complete and request a new path
+    if (this.pathLength < 1e-6) {
+      this.onPathComplete();
+      return;
+    }
+
     // Update path progress
     const speedMult = this.getSpeedMultiplier();
     const progressDelta = (this.baseSpeed * speedMult * deltaTime) / this.pathLength;
@@ -135,9 +146,10 @@ export abstract class VehicleBase {
       return;
     }
 
-    // Get position and direction on path (reuse cached pathLength to avoid a per-frame O(n) walk)
-    const newPosition = pathGenerator.getPointOnPath(this.path, this.pathProgress, this.pathLength);
-    const newDirection = pathGenerator.getDirectionOnPath(this.path, this.pathProgress, this.pathLength);
+    // Get position and direction on path (reuse cached pathLength to avoid a per-frame O(n) walk,
+    // and instance temps to avoid per-frame allocations)
+    const newPosition = pathGenerator.getPointOnPath(this.path, this.pathProgress, this.pathLength, this.tempPoint);
+    const newDirection = pathGenerator.getDirectionOnPath(this.path, this.pathProgress, this.pathLength, this.tempDirection);
 
     // Smooth direction changes
     this.targetDirection.copy(newDirection);

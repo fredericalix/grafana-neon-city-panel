@@ -137,7 +137,10 @@ export class FarmSiloPrefab extends BasePrefab {
 
   override updateData(state: BuildingState): void {
     if (state.siloFillLevel !== undefined) {
-      this.targetFillLevel = Math.max(0, Math.min(100, state.siloFillLevel));
+      // Non-finite values (NaN/Infinity) would pass through the clamp
+      this.targetFillLevel = Number.isFinite(state.siloFillLevel)
+        ? Math.max(0, Math.min(100, state.siloFillLevel))
+        : 0;
     }
   }
 

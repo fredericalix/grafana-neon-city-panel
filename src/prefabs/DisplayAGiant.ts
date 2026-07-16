@@ -59,6 +59,10 @@ const CONFIG = {
   circuitHorizontalHeights: [2.0, 4.0, 6.5],
 };
 
+// Canvas re-render cadence (seconds) — ~15 Hz; per-frame 2D redraw + texture
+// upload is expensive and imperceptible above this rate.
+const TEXT_REDRAW_INTERVAL = 1 / 15;
+
 // =============================================================================
 // DISPLAY A GIANT PREFAB
 // =============================================================================
@@ -83,6 +87,7 @@ export class DisplayAGiantPrefab extends BasePrefab {
   private ringTextures: THREE.CanvasTexture[] = [];
   private textOffsets: number[] = [0, 0, 0];
   private texts: string[];
+  private textRedrawAccum = 0;
 
   // Configuration
   private ringCount: DisplayRingCount = 3;
@@ -221,7 +226,8 @@ export class DisplayAGiantPrefab extends BasePrefab {
       }
 
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(geo, circuitMat.clone());
+      // First line takes the template material so it gets disposed with the group
+      const line = new THREE.Line(geo, i === 0 ? circuitMat : circuitMat.clone());
       this.circuitLines.push(line);
       this.group.add(line);
     }
@@ -275,7 +281,8 @@ export class DisplayAGiantPrefab extends BasePrefab {
       ];
 
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(geo, edgeMat.clone());
+      // First edge takes the template material so it gets disposed with the group
+      const line = new THREE.Line(geo, i === 0 ? edgeMat : edgeMat.clone());
       this.neonEdges.push(line);
       this.group.add(line);
     }
@@ -545,7 +552,7 @@ export class DisplayAGiantPrefab extends BasePrefab {
 
     // Body emissive for warning/critical
     if (this.body?.material instanceof THREE.MeshStandardMaterial) {
-      this.body.material.emissive = new THREE.Color(
+      this.body.material.emissive.setHex(
         isCritical ? 0x330000 : isWarning ? 0x331a00 : 0x000000
       );
     }
@@ -576,11 +583,19 @@ export class DisplayAGiantPrefab extends BasePrefab {
       }
     });
 
-    // Scroll text
+    // Scroll text — offsets advance every frame, canvas redraw is throttled
+    // (first render happens in build(), data changes render directly)
+    this.textRedrawAccum += deltaTime;
+    const redrawTexts = this.textRedrawAccum >= TEXT_REDRAW_INTERVAL;
+    if (redrawTexts) {
+      this.textRedrawAccum = 0;
+    }
     for (let i = 0; i < 3; i++) {
       if (this.rings[i]?.visible) {
         this.textOffsets[i] += deltaTime * CONFIG.screen.scrollSpeed * speed;
-        this.updateTextCanvas(i);
+        if (redrawTexts) {
+          this.updateTextCanvas(i);
+        }
       }
     }
 

@@ -413,8 +413,10 @@ export class TooltipManager {
     }
 
     const coords = this.projectToScreen(entry.position);
-    if (!coords) {
-      entry.element.style.opacity = '0.3';
+    if (!coords || coords.behindCamera) {
+      // Hide entirely, consistent with PopupLineManager which hides its line
+      // (clamped edge coordinates are meaningless behind the camera)
+      entry.element.style.display = 'none';
       return;
     }
 
@@ -436,7 +438,7 @@ export class TooltipManager {
     left = Math.max(margin, Math.min(left, containerRect.width - tooltipWidth - margin));
     top = Math.max(margin, Math.min(top, containerRect.height - tooltipHeight - margin));
 
-    entry.element.style.opacity = coords.behindCamera ? '0.4' : '1';
+    entry.element.style.opacity = '1';
     entry.element.style.left = `${left}px`;
     entry.element.style.top = `${top}px`;
     entry.element.style.transform = 'none';

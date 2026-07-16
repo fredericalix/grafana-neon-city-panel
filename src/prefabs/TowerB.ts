@@ -609,7 +609,8 @@ export class TowerBPrefab extends BasePrefab {
         new THREE.Vector3(x * 0.95, 0.1 + this.TOWER_HEIGHT, z * 0.95),
       ];
       const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const line = new THREE.Line(geo, edgeMat.clone());
+      // First line takes the template material so it gets disposed with the group
+      const line = new THREE.Line(geo, i === 0 ? edgeMat : edgeMat.clone());
       this.neonEdges.push(line);
       this.group.add(line);
     }
@@ -688,8 +689,8 @@ export class TowerBPrefab extends BasePrefab {
     if (isCritical) {
       this.rabbitParts.forEach((part) => {
         if (part.material instanceof THREE.ShaderMaterial) {
-          part.material.uniforms.uColor.value = new THREE.Color(0xff4444);
-          part.material.uniforms.uGlowColor.value = new THREE.Color(0xff0000);
+          part.material.uniforms.uColor.value.setHex(0xff4444);
+          part.material.uniforms.uGlowColor.value.setHex(0xff0000);
           part.material.uniforms.uGlitchIntensity.value = 0.3;
           part.material.uniforms.uFlickerIntensity.value = 0.35;
         }
@@ -697,8 +698,8 @@ export class TowerBPrefab extends BasePrefab {
     } else if (isWarning) {
       this.rabbitParts.forEach((part) => {
         if (part.material instanceof THREE.ShaderMaterial) {
-          part.material.uniforms.uColor.value = new THREE.Color(0xffaa00);
-          part.material.uniforms.uGlowColor.value = new THREE.Color(0xff6600);
+          part.material.uniforms.uColor.value.setHex(0xffaa00);
+          part.material.uniforms.uGlowColor.value.setHex(0xff6600);
           part.material.uniforms.uGlitchIntensity.value = 0.15;
           part.material.uniforms.uFlickerIntensity.value = 0.2;
         }
@@ -707,8 +708,8 @@ export class TowerBPrefab extends BasePrefab {
       // Reset to default rabbit colors
       this.rabbitParts.forEach((part) => {
         if (part.material instanceof THREE.ShaderMaterial) {
-          part.material.uniforms.uColor.value = new THREE.Color(HOLOGRAM_PRESETS.rabbit.color);
-          part.material.uniforms.uGlowColor.value = new THREE.Color(HOLOGRAM_PRESETS.rabbit.glowColor);
+          part.material.uniforms.uColor.value.setHex(HOLOGRAM_PRESETS.rabbit.color);
+          part.material.uniforms.uGlowColor.value.setHex(HOLOGRAM_PRESETS.rabbit.glowColor);
           part.material.uniforms.uGlitchIntensity.value = HOLOGRAM_PRESETS.rabbit.glitchIntensity;
           part.material.uniforms.uFlickerIntensity.value = HOLOGRAM_PRESETS.rabbit.flickerIntensity;
         }
@@ -717,7 +718,7 @@ export class TowerBPrefab extends BasePrefab {
 
     // Body emissive for warning/critical
     if (this.towerBody?.material instanceof THREE.MeshStandardMaterial) {
-      this.towerBody.material.emissive = new THREE.Color(
+      this.towerBody.material.emissive.setHex(
         isCritical ? 0x330000 : isWarning ? 0x331a00 : 0x000000
       );
     }
@@ -736,7 +737,8 @@ export class TowerBPrefab extends BasePrefab {
 
     if (this.status === 'offline') {return;}
 
-    this.animTime += deltaTime;
+    // Wrap to keep the float32 hologram uTime uniform precise on long-running dashboards
+    this.animTime = (this.animTime + deltaTime) % 3600;
     const speed = this.getActivitySpeed();
 
     // Rotate text ring
@@ -764,6 +766,10 @@ export class TowerBPrefab extends BasePrefab {
   }
 
   override dispose(): void {
+    // Dispose the unattached template material (only its clones are attached,
+    // so the group traversal never reaches it)
+    this.rabbitMaterial?.dispose();
+
     // Dispose rabbit materials (shader materials need explicit disposal)
     this.rabbitParts.forEach((part) => {
       if (part.material instanceof THREE.ShaderMaterial) {

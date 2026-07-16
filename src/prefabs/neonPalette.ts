@@ -11,13 +11,22 @@ export interface ScreenPalette {
   gradientBase: string;
 }
 
-/** Parse a hex color (#RRGGBB or #RGB) into [r, g, b] 0-255 */
+export const DEFAULT_NEON = '#00ffff';
+
+/**
+ * Parse a hex color (#RRGGBB or #RGB) into [r, g, b] 0-255.
+ * Invalid input falls back to the default neon color — NaN channels would
+ * otherwise propagate into '#NaNNaNNaN' CSS strings downstream.
+ */
 export function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
-  if (h.length === 3) {
+  if (/^[0-9a-fA-F]{3}$/.test(h)) {
     return [parseInt(h[0] + h[0], 16), parseInt(h[1] + h[1], 16), parseInt(h[2] + h[2], 16)];
   }
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  if (/^[0-9a-fA-F]{6}$/.test(h)) {
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+  return hexToRgb(DEFAULT_NEON);
 }
 
 /** Derive a full screen palette from a single neon hex color */
@@ -36,12 +45,11 @@ export function neonToPalette(hex: string): ScreenPalette {
   const toHex2 = (n: number) => n.toString(16).padStart(2, '0');
   return {
     bg: `#${toHex2(bgR)}${toHex2(bgG)}${toHex2(bgB)}`,
-    text: hex,
+    // Rebuilt from parsed channels so invalid input can't leak into CSS
+    text: `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`,
     glow: `#${toHex2(glowR)}${toHex2(glowG)}${toHex2(glowB)}`,
     highlight: `#${toHex2(hiR)}${toHex2(hiG)}${toHex2(hiB)}`,
     scanline: `rgba(${r},${g},${b},0.04)`,
     gradientBase: `rgba(${r},${g},${b},`,
   };
 }
-
-export const DEFAULT_NEON = '#00ffff';
