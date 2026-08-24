@@ -10,8 +10,6 @@ import { COLORS } from '../prefabs/materials';
 
 export class RoadNetwork {
   private group: THREE.Group;
-  private neonEdges: THREE.Line[] = [];
-  private centerLines: THREE.Line[] = [];
   private groundGrid: THREE.LineSegments | null = null;
   private pulseTime = 0;
 
@@ -78,6 +76,11 @@ export class RoadNetwork {
     // Merge all road surfaces into one geometry for performance
     const roadGeometries: THREE.BufferGeometry[] = [];
 
+    // Segment endpoints accumulated here and merged into one LineSegments per
+    // material after the loop — 2 draw calls instead of one per edge/dash.
+    const neonEdgePoints: number[] = [];
+    const centerLinePoints: number[] = [];
+
     for (let z = 0; z < roads.length; z++) {
       const row = roads[z];
       for (let x = 0; x < row.length; x++) {
@@ -104,16 +107,16 @@ export class RoadNetwork {
         // Neon edges on boundaries (no adjacent road on that side)
         const edgeY = 0.02;
         if (!hasN) {
-          this.addNeonEdge(worldX - 0.5, edgeY, worldZ - 0.5, worldX + 0.5, edgeY, worldZ - 0.5, neonEdgeMaterial);
+          neonEdgePoints.push(worldX - 0.5, edgeY, worldZ - 0.5, worldX + 0.5, edgeY, worldZ - 0.5);
         }
         if (!hasS) {
-          this.addNeonEdge(worldX - 0.5, edgeY, worldZ + 0.5, worldX + 0.5, edgeY, worldZ + 0.5, neonEdgeMaterial);
+          neonEdgePoints.push(worldX - 0.5, edgeY, worldZ + 0.5, worldX + 0.5, edgeY, worldZ + 0.5);
         }
         if (!hasW) {
-          this.addNeonEdge(worldX - 0.5, edgeY, worldZ - 0.5, worldX - 0.5, edgeY, worldZ + 0.5, neonEdgeMaterial);
+          neonEdgePoints.push(worldX - 0.5, edgeY, worldZ - 0.5, worldX - 0.5, edgeY, worldZ + 0.5);
         }
         if (!hasE) {
-          this.addNeonEdge(worldX + 0.5, edgeY, worldZ - 0.5, worldX + 0.5, edgeY, worldZ + 0.5, neonEdgeMaterial);
+          neonEdgePoints.push(worldX + 0.5, edgeY, worldZ - 0.5, worldX + 0.5, edgeY, worldZ + 0.5);
         }
 
         // Center-line dashes on straight (non-intersection) segments
@@ -123,10 +126,10 @@ export class RoadNetwork {
 
           if (isVertical) {
             // Vertical dash in center
-            this.addCenterLine(worldX, edgeY, worldZ - 0.3, worldX, edgeY, worldZ + 0.3, centerLineMaterial);
+            centerLinePoints.push(worldX, edgeY, worldZ - 0.3, worldX, edgeY, worldZ + 0.3);
           } else if (isHorizontal) {
             // Horizontal dash in center
-            this.addCenterLine(worldX - 0.3, edgeY, worldZ, worldX + 0.3, edgeY, worldZ, centerLineMaterial);
+            centerLinePoints.push(worldX - 0.3, edgeY, worldZ, worldX + 0.3, edgeY, worldZ);
           }
         }
       }
@@ -143,6 +146,18 @@ export class RoadNetwork {
       for (const geo of roadGeometries) {
         geo.dispose();
       }
+    }
+
+    // One LineSegments per line material (shared, disposed in disposeRoads())
+    if (neonEdgePoints.length > 0) {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(neonEdgePoints, 3));
+      this.group.add(new THREE.LineSegments(geometry, neonEdgeMaterial));
+    }
+    if (centerLinePoints.length > 0) {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(centerLinePoints, 3));
+      this.group.add(new THREE.LineSegments(geometry, centerLineMaterial));
     }
   }
 
@@ -227,14 +242,13 @@ export class RoadNetwork {
     }
     for (const obj of toRemove) {
       this.group.remove(obj);
+      // LineSegments extends Line, so merged neon edges / center dashes are
+      // covered here too. Geometry is unique per object; materials are shared,
+      // so they are disposed once below rather than once per object.
       if (obj instanceof THREE.Mesh || obj instanceof THREE.Line) {
-        // Geometry is unique per object; materials are shared, so they are
-        // disposed once below rather than once per object.
         obj.geometry?.dispose();
       }
     }
-    this.neonEdges = [];
-    this.centerLines = [];
 
     // Dispose the shared materials exactly once.
     this.roadMaterial?.dispose();
@@ -243,34 +257,6 @@ export class RoadNetwork {
     this.roadMaterial = null;
     this.neonEdgeMaterial = null;
     this.centerLineMaterial = null;
-  }
-
-  private addNeonEdge(
-    x1: number, y1: number, z1: number,
-    x2: number, y2: number, z2: number,
-    material: THREE.LineBasicMaterial
-  ): void {
-    const geometry = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(x1, y1, z1),
-      new THREE.Vector3(x2, y2, z2),
-    ]);
-    const line = new THREE.Line(geometry, material);
-    this.neonEdges.push(line);
-    this.group.add(line);
-  }
-
-  private addCenterLine(
-    x1: number, y1: number, z1: number,
-    x2: number, y2: number, z2: number,
-    material: THREE.LineBasicMaterial
-  ): void {
-    const geometry = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(x1, y1, z1),
-      new THREE.Vector3(x2, y2, z2),
-    ]);
-    const line = new THREE.Line(geometry, material);
-    this.centerLines.push(line);
-    this.group.add(line);
   }
 
   private mergeGeometries(geometries: THREE.BufferGeometry[]): THREE.BufferGeometry {

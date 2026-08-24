@@ -255,21 +255,17 @@ export abstract class VehicleBase {
   dispose(): void {
     this.trail.dispose();
 
-    // Dispose all children geometries and materials
+    // Dispose all children geometries and materials.
+    // Line, LineSegments and Points carry geometry/material too but are not
+    // instanceof Mesh — check the properties, not the class. (DataPacket's
+    // particle aura is THREE.Points and leaked GPU resources before this.)
     this.group.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.geometry?.dispose();
-        if (child.material instanceof THREE.Material) {
-          child.material.dispose();
-        } else if (Array.isArray(child.material)) {
-          child.material.forEach((m) => m.dispose());
-        }
-      }
-      if (child instanceof THREE.Line) {
-        child.geometry?.dispose();
-        if (child.material instanceof THREE.Material) {
-          child.material.dispose();
-        }
+      const { geometry, material } = child as THREE.Mesh;
+      geometry?.dispose();
+      if (Array.isArray(material)) {
+        material.forEach((m) => m.dispose());
+      } else if (material) {
+        material.dispose();
       }
     });
   }

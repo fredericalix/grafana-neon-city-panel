@@ -47,6 +47,10 @@ const CONFIG = {
     canvasHeight: 128,
     scrollSpeed: 120,
     fontSize: 56,
+    // Seconds between teleprinter canvas repaints (~15 fps is enough for a
+    // 120 px/s scroll; repainting every frame costs ~1 MB of texture upload
+    // per active band per frame).
+    redrawInterval: 1 / 15,
   },
   animation: {
     baseRotationSpeed: 0.2,
@@ -115,6 +119,9 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
   private currentMessages: string[] = [];
   private messageFinished: boolean[] = [];
   private textWidths: number[] = [];
+  // Throttles canvas repaints: a full 2048x128 repaint + texture upload per
+  // band per frame is the dominant GPU/CPU cost, so redraw at a fixed rate.
+  private teleprinterRedrawTimer = 0;
 
   // User-chosen neon color (from layout editor), defaults to cyan
   private baseNeonColor: string;
@@ -591,6 +598,13 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
 
     const speed = this.getActivitySpeed();
 
+    // Text offsets advance every frame (cheap); canvas repaints are throttled.
+    this.teleprinterRedrawTimer += deltaTime;
+    const shouldRedraw = this.teleprinterRedrawTimer >= CONFIG.screen.redrawInterval;
+    if (shouldRedraw) {
+      this.teleprinterRedrawTimer %= CONFIG.screen.redrawInterval;
+    }
+
     for (let i = 0; i < this.screenMeshes.length; i++) {
       if (this.messageFinished[i] || !this.currentMessages[i]) {
         continue;
@@ -603,7 +617,7 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
       if (this.textOffsets[i] + this.textWidths[i] < 0) {
         this.messageFinished[i] = true;
         this.renderScreenBackground(i);
-      } else {
+      } else if (shouldRedraw) {
         this.renderTickerFrame(i);
       }
     }

@@ -277,6 +277,7 @@ class MockBoxGeometry {
   attributes = {};
   index = null;
   setFromPoints = jest.fn().mockReturnThis();
+  setDrawRange = jest.fn();
   copy = jest.fn().mockReturnThis();
 }
 
@@ -295,6 +296,8 @@ const MockTubeGeometry = MockBoxGeometry;
 const MockLatheGeometry = MockBoxGeometry;
 const MockOctahedronGeometry = MockBoxGeometry;
 const MockCapsuleGeometry = MockBoxGeometry;
+const MockIcosahedronGeometry = MockBoxGeometry;
+const MockWireframeGeometry = MockBoxGeometry;
 
 // --- Materials ---
 class MockMeshStandardMaterial {
@@ -429,6 +432,8 @@ class MockFloat32BufferAttribute {
     this.count = this.array.length / itemSize;
     this.itemSize = itemSize;
   }
+
+  setUsage = jest.fn().mockReturnThis();
 }
 
 class MockBufferAttribute {
@@ -441,6 +446,8 @@ class MockBufferAttribute {
     this.count = array.length / itemSize;
     this.itemSize = itemSize;
   }
+
+  setUsage = jest.fn().mockReturnThis();
 }
 
 // --- Raycaster ---
@@ -532,6 +539,7 @@ class MockWebGLRenderer {
   setClearColor = jest.fn();
   render = jest.fn();
   dispose = jest.fn();
+  forceContextLoss = jest.fn();
   shadowMap = { enabled: false, type: 0 };
   toneMapping = 0;
   toneMappingExposure = 1;
@@ -598,6 +606,7 @@ const ClampToEdgeWrapping = 1001;
 const LinearFilter = 1006;
 const NearestFilter = 1003;
 const LinearMipmapLinearFilter = 1008;
+const DynamicDrawUsage = 35048;
 
 // --- MathUtils ---
 const MathUtils = {
@@ -642,6 +651,8 @@ export {
   MockLatheGeometry as LatheGeometry,
   MockOctahedronGeometry as OctahedronGeometry,
   MockCapsuleGeometry as CapsuleGeometry,
+  MockIcosahedronGeometry as IcosahedronGeometry,
+  MockWireframeGeometry as WireframeGeometry,
 
   // Textures
   MockTexture as Texture,
@@ -689,6 +700,7 @@ export {
   LinearFilter,
   NearestFilter,
   LinearMipmapLinearFilter,
+  DynamicDrawUsage,
 
   // Utils
   MathUtils,

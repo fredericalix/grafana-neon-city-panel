@@ -270,6 +270,10 @@ export class CityEngine {
 
     this.controls.dispose();
     this.renderer.dispose();
+    // Release the WebGL context itself: renderer.dispose() only frees internal
+    // caches, and browsers cap the number of live WebGL contexts (~16). Without
+    // this, repeated panel mount/unmount evicts contexts of other panels.
+    this.renderer.forceContextLoss();
 
     if (this.container.contains(this.renderer.domElement)) {
       this.container.removeChild(this.renderer.domElement);

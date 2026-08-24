@@ -279,7 +279,7 @@ Webpack generates integrity hashes. Grafana can verify loaded scripts match expe
     "screenshots": []
   },
   "dependencies": {
-    "grafanaDependency": ">=12.3.0",
+    "grafanaDependency": ">=13.1.4",
     "plugins": []
   }
 }

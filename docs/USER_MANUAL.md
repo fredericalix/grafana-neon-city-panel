@@ -19,7 +19,7 @@ A Grafana panel plugin that renders a tron like 3D city using Three.js. Each bui
 
 ## Requirements
 
-- **Grafana** >= 12.3.0
+- **Grafana** >= 13.1.4
 - A modern browser with **WebGL** support (Chrome, Firefox, Edge, Safari)
 
 ---
@@ -58,7 +58,7 @@ Use a Docker Compose setup that mounts the plugin and sets the unsigned-plugin v
 ```yaml
 services:
   grafana:
-    image: grafana/grafana:12.3.2
+    image: grafana/grafana:13.1.4
     ports:
       - "3000:3000"
     environment:

@@ -21,7 +21,7 @@ Built with [Three.js](https://threejs.org/). Features 11 building types, 3 custo
 
 ## Requirements
 
-- Grafana >= 12.3.0
+- Grafana >= 13.1.4
 - A modern browser with WebGL support
 
 ## Getting Started

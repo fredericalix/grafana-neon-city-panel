@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { RoadNetwork } from './RoadNetwork';
 
 // THREE is auto-mocked via src/__mocks__/three.ts (moduleNameMapper).
@@ -50,5 +51,22 @@ describe('RoadNetwork', () => {
     road.build(['11'], origin); // triggers disposeRoads() on the first set
 
     expect(firstNeon.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('merges neon edges and center dashes into one LineSegments each (draw-call regression)', () => {
+    const road = new RoadNetwork();
+    // Single straight row: every cell boundary gets neon edges and the three
+    // middle cells get horizontal center dashes — still only 3 draw calls.
+    road.build(['11111'], origin);
+
+    const children = road.getObject().children;
+    const meshes = children.filter((c) => c instanceof THREE.Mesh);
+    const lines = children.filter((c) => c instanceof THREE.Line);
+
+    expect(meshes).toHaveLength(1); // merged road surfaces
+    expect(lines).toHaveLength(2); // 1 neon-edge + 1 center-dash LineSegments
+    for (const line of lines) {
+      expect(line).toBeInstanceOf(THREE.LineSegments);
+    }
   });
 });
