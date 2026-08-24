@@ -73,6 +73,26 @@ describe('mapDataToStates', () => {
       expect(states[3].status).toBe('offline');   // -1 < 0
     });
 
+    it('matches columns renamed via config.displayName (organize/rename transformations)', () => {
+      // Grafana's organize transformation renames fields by setting
+      // config.displayName / state.displayName — field.name keeps the
+      // datasource-generated name (e.g. "Value #A").
+      const frame: DataFrame = {
+        length: 1,
+        fields: [
+          field('name', FieldType.string, ['api']),
+          { ...field('Value #A', FieldType.number, [95]), config: { displayName: 'value' } },
+          { ...field('Value #B', FieldType.number, [42]), config: { displayName: 'cpu' } },
+          { ...field('Value #C', FieldType.number, [77]), state: { displayName: 'ram' } },
+        ],
+      } as DataFrame;
+
+      const states = mapDataToStates(panelData([frame]), makeOptions());
+
+      expect(states).toHaveLength(1);
+      expect(states[0]).toMatchObject({ id: 'api', status: 'online', cpuUsage: 42, ramUsage: 77 });
+    });
+
     it('uses status text over value field when both are present', () => {
       const frame = tableFrame({
         name: { type: FieldType.string, values: ['svc'] },

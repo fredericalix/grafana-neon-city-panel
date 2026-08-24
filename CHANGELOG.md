@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Fixes
+
+- Field lookup now also matches `config.displayName` / `state.displayName`, so columns renamed with Grafana's organize/rename transformations (the standard way to shape Prometheus results into the panel's table format) are recognized. Previously such columns were ignored and buildings stayed `offline`.
+
+### Demo
+
+- New `demo/` self-contained docker-compose stack ("Neon Noodle Bar"): HA frontend/backend behind Traefik + PostgreSQL, monitored by Prometheus + Grafana with provisioned alerting, the city dashboard fed by `neon:*` recording rules, a sinusoidal load generator and a `chaos.sh` incident toolbox
+
 ## 1.1.1
 
 ### Reliability

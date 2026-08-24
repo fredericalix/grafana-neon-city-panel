@@ -307,7 +307,16 @@ export function mapDataToTraffic(
 }
 
 function findField(fields: Field[], name: string): Field | undefined {
-  return fields.find((f) => f.name.toLowerCase() === name.toLowerCase());
+  const lower = name.toLowerCase();
+  // Grafana's organize/rename transformations set config.displayName (and
+  // state.displayName) but leave field.name untouched — match both so
+  // transformed query results (e.g. Prometheus + merge + organize) work.
+  return fields.find(
+    (f) =>
+      f.name.toLowerCase() === lower ||
+      f.config?.displayName?.toLowerCase() === lower ||
+      f.state?.displayName?.toLowerCase() === lower
+  );
 }
 
 function resolveStatusFromText(text: string): BuildingStatus {
