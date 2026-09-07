@@ -1,0 +1,9 @@
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: noodle-webhook
+    group_by: ["alertname", "name"]
+    group_wait: 10s
+    group_interval: 1m
+    repeat_interval: 30m

@@ -44,8 +44,8 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
       return;
     }
 
-    // `name` (lowercased) is the join key with Grafana query rows (dataMapper
-    // emits state.id = lowercased name), so duplicates silently merge state
+    // `name` is the join key with Grafana query rows (CityEngine resolves
+    // state.id via a name → id map), so duplicates silently merge state
     // across distinct buildings. Warn early instead.
     const seenNames = new Set<string>();
     const duplicates = new Set<string>();
@@ -63,10 +63,11 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
       );
     }
 
-    // Lowercased id so the data join is case-insensitive (query names rarely
-    // match the layout's exact casing); `name` keeps the display casing.
+    // Use the layout id as the 3D identity: it survives renames, so editing a
+    // building's name no longer disposes and rebuilds the whole prefab. The
+    // data join happens by name inside CityEngine (see nameToId).
     const buildings: Building[] = options.layout.buildings.map((b) => ({
-      id: b.name.toLowerCase(),
+      id: b.id,
       name: b.name,
       type: b.type,
       location: { x: b.x, y: b.z },
@@ -88,11 +89,13 @@ export const CityPanel: React.FC<Props> = ({ data, options, width, height }) => 
 
   // Sync roads from layout config
   useEffect(() => {
-    if (!engineRef.current || !options.layout?.roads) {
+    if (!engineRef.current) {
       return;
     }
-    const origin = options.layout.roadOrigin ?? { x: 0, z: 0 };
-    engineRef.current.setRoads(options.layout.roads, origin);
+    // Empty array when roads are absent: setRoads must still be called so a
+    // previous road network does not linger in the scene.
+    const origin = options.layout?.roadOrigin ?? { x: 0, z: 0 };
+    engineRef.current.setRoads(options.layout?.roads ?? [], origin);
   }, [options.layout?.roads, options.layout?.roadOrigin]);
 
   // Update traffic state from Grafana data

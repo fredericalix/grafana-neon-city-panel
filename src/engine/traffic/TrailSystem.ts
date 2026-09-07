@@ -25,7 +25,6 @@ const trailVertexShader = `
 const trailFragmentShader = `
   uniform vec3 uColor;
   uniform float uOpacity;
-  uniform float uTime;
   varying float vAge;
   varying vec2 vUv;
 
@@ -66,7 +65,11 @@ export interface TrailOptions {
 }
 
 export class TrailSystem {
-  private points: TrailPoint[] = [];
+  // Fixed-size ring buffer of preallocated points: index 0 is the newest point,
+  // older points follow at increasing logical indices (see pointAt)
+  private readonly points: TrailPoint[];
+  private head = -1; // physical index of the newest point
+  private count = 0;
   private geometry: THREE.BufferGeometry;
   private material: THREE.ShaderMaterial;
   private mesh: THREE.Mesh;
@@ -80,7 +83,6 @@ export class TrailSystem {
   private ageAttribute: THREE.BufferAttribute;
   private uvAttribute: THREE.BufferAttribute;
 
-  private needsUpdate = false;
   private active = true;
 
   // Reused temps for rebuildGeometry (called every frame while a trail is visible)
@@ -92,6 +94,12 @@ export class TrailSystem {
     this.trailWidth = options.width ?? TRAIL_CONFIG.width;
     this.color = new THREE.Color(color);
     this.opacity = options.opacity ?? 0.9;
+
+    this.points = Array.from({ length: this.maxPoints }, () => ({
+      position: new THREE.Vector3(),
+      direction: new THREE.Vector3(0, 0, 1),
+      age: 0,
+    }));
 
     // Create geometry with max capacity
     this.geometry = new THREE.BufferGeometry();
@@ -141,7 +149,6 @@ export class TrailSystem {
       uniforms: {
         uColor: { value: this.color },
         uOpacity: { value: this.opacity },
-        uTime: { value: 0 },
       },
       vertexShader: trailVertexShader,
       fragmentShader: trailFragmentShader,
@@ -173,56 +180,50 @@ export class TrailSystem {
   addPoint(position: THREE.Vector3, direction: THREE.Vector3): void {
     if (!this.active) {return;}
 
-    // Add new point at the beginning (newest)
-    this.points.unshift({
-      position: position.clone(),
-      direction: direction.clone().normalize(),
-      age: 0,
-    });
-
-    // Remove oldest points if over limit
-    while (this.points.length > this.maxPoints) {
-      this.points.pop();
+    // Advance the ring buffer and overwrite the oldest slot in place —
+    // no Vector3 clones or array shifts in the render loop
+    this.head = (this.head + 1) % this.maxPoints;
+    const point = this.points[this.head];
+    point.position.copy(position);
+    point.direction.copy(direction).normalize();
+    point.age = 0;
+    if (this.count < this.maxPoints) {
+      this.count++;
     }
+  }
 
-    this.needsUpdate = true;
+  /**
+   * Point at logical index i (0 = newest), resolving the ring buffer offset
+   */
+  private pointAt(i: number): TrailPoint {
+    return this.points[(this.head - i + this.maxPoints) % this.maxPoints];
   }
 
   /**
    * Update trail animation (age points and rebuild geometry)
    */
   update(deltaTime: number): void {
-    if (this.points.length === 0) {return;}
+    if (this.count === 0) {return;}
 
     // Age all points
     const ageIncrement = deltaTime * TRAIL_CONFIG.fadeSpeed;
-    for (const point of this.points) {
-      point.age += ageIncrement;
+    for (let i = 0; i < this.count; i++) {
+      this.pointAt(i).age += ageIncrement;
     }
 
-    // Remove fully faded points
-    while (this.points.length > 0 && this.points[this.points.length - 1].age >= 1) {
-      this.points.pop();
+    // Remove fully faded points (always the oldest, i.e. the logical tail)
+    while (this.count > 0 && this.pointAt(this.count - 1).age >= 1) {
+      this.count--;
     }
 
-    if (this.points.length === 0) {
+    if (this.count === 0) {
       this.geometry.setDrawRange(0, 0);
-      this.needsUpdate = false;
       return;
     }
 
     // Ages changed above, so the GPU buffers must be re-uploaded every frame —
     // otherwise the fade of an inactive (no new points) trail freezes between pops
-    this.needsUpdate = true;
-
-    // Update time uniform for any animation effects
-    this.material.uniforms.uTime.value += deltaTime;
-
-    // Rebuild geometry if needed
-    if (this.needsUpdate) {
-      this.rebuildGeometry();
-      this.needsUpdate = false;
-    }
+    this.rebuildGeometry();
   }
 
   /**
@@ -235,10 +236,10 @@ export class TrailSystem {
 
     const { up, perpendicular } = this;
     // Denominator so UV x spans the full 0-1 range (guarding single-point trails)
-    const uvSpan = Math.max(1, this.points.length - 1);
+    const uvSpan = Math.max(1, this.count - 1);
 
-    for (let i = 0; i < this.points.length; i++) {
-      const point = this.points[i];
+    for (let i = 0; i < this.count; i++) {
+      const point = this.pointAt(i);
       const vertexIndex = i * 2;
 
       // Calculate perpendicular direction for ribbon width
@@ -278,7 +279,7 @@ export class TrailSystem {
     this.uvAttribute.needsUpdate = true;
 
     // Update draw range
-    const numTriangles = Math.max(0, (this.points.length - 1) * 2);
+    const numTriangles = Math.max(0, (this.count - 1) * 2);
     this.geometry.setDrawRange(0, numTriangles * 3);
   }
 
@@ -294,7 +295,7 @@ export class TrailSystem {
    * Clear all trail points
    */
   clear(): void {
-    this.points = [];
+    this.count = 0;
     this.geometry.setDrawRange(0, 0);
   }
 
@@ -309,7 +310,7 @@ export class TrailSystem {
    * Check if trail is empty
    */
   isEmpty(): boolean {
-    return this.points.length === 0;
+    return this.count === 0;
   }
 
   /**

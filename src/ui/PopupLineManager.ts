@@ -2,7 +2,9 @@ import * as THREE from 'three';
 
 interface LineConnection {
   buildingWorldPos: THREE.Vector3;
-  popupElement: HTMLElement;
+  // Popup anchor in canvas coordinates, pushed each frame by TooltipManager
+  // so no getBoundingClientRect() is needed here.
+  anchor: { x: number; y: number } | null;
 }
 
 /**
@@ -16,6 +18,7 @@ export class PopupLineManager {
   private threeCanvas: HTMLCanvasElement;
   private connections: Map<string, LineConnection> = new Map();
   private animTime = 0;
+  private hasDrawn = false;
   private tempV = new THREE.Vector3();
 
   private readonly CYAN = '#4fc3f7';
@@ -46,10 +49,17 @@ export class PopupLineManager {
     this.canvas.height = this.threeCanvas.clientHeight;
   }
 
-  addConnection(id: string, worldPos: THREE.Vector3, popupElement: HTMLElement): void {
+  addConnection(id: string, worldPos: THREE.Vector3): void {
     const pos = worldPos.clone();
     pos.y -= 2.5; // Connect to building top, not the tooltip anchor offset
-    this.connections.set(id, { buildingWorldPos: pos, popupElement });
+    this.connections.set(id, { buildingWorldPos: pos, anchor: null });
+  }
+
+  setPopupAnchor(id: string, anchor: { x: number; y: number } | null): void {
+    const conn = this.connections.get(id);
+    if (conn) {
+      conn.anchor = anchor;
+    }
   }
 
   removeConnection(id: string): void {
@@ -62,7 +72,18 @@ export class PopupLineManager {
 
   update(deltaTime: number): void {
     this.animTime += deltaTime;
+
+    if (this.connections.size === 0) {
+      // One last clear so the final line doesn't linger after removal
+      if (this.hasDrawn) {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.hasDrawn = false;
+      }
+      return;
+    }
+
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.hasDrawn = true;
 
     for (const conn of this.connections.values()) {
       this.drawLine(conn);
@@ -78,17 +99,15 @@ export class PopupLineManager {
   // ---------------------------------------------------------------------------
 
   private drawLine(conn: LineConnection): void {
+    if (!conn.anchor) {
+      return;
+    }
     const buildingScreen = this.projectToScreen(conn.buildingWorldPos);
     if (!buildingScreen) {
       return;
     }
 
-    const rect = conn.popupElement.getBoundingClientRect();
-    const canvasRect = this.canvas.getBoundingClientRect();
-    const popupX = rect.left + rect.width / 2 - canvasRect.left;
-    const popupY = rect.bottom - canvasRect.top;
-
-    this.drawTronLine(buildingScreen.x, buildingScreen.y, popupX, popupY);
+    this.drawTronLine(buildingScreen.x, buildingScreen.y, conn.anchor.x, conn.anchor.y);
   }
 
   private drawTronLine(x1: number, y1: number, x2: number, y2: number): void {

@@ -61,7 +61,6 @@ const CONFIG = {
 export interface BandData {
   name: string;
   value: number;
-  color?: number;
   radius: number; // 0-100, maps to scale min..max
 }
 
@@ -373,10 +372,10 @@ export class MonitorTubePrefab extends BasePrefab {
       this.innerCoreMaterial.color.setHex(coreColor);
     }
 
-    // Update halo
+    // Update halo (intensity only — uActivityLevel is driven by updateHalo()
+    // each frame from the gauge values, so writing the preset here is dead code)
     if (this.haloMaterial) {
       this.haloMaterial.uniforms.uIntensity.value = preset.haloIntensity;
-      this.haloMaterial.uniforms.uActivityLevel.value = preset.activityLevel;
     }
 
     // Update ring bands
@@ -424,10 +423,15 @@ export class MonitorTubePrefab extends BasePrefab {
     // Wrap to keep the float32 uTime uniforms precise on long-running dashboards
     this.animTime = (this.animTime + deltaTime) % 3600;
 
-    this.interpolateMetrics(deltaTime);
-    this.animateBandRotation(deltaTime);
-    this.updateGaugeFills();
-    this.updateBandRadii();
+    // Offline: freeze non-essential animation (band rotation/wobble, gauge
+    // interpolation) — uTime/halo uniforms still update so the shader stays
+    // coherent with the offline preset applied by onStatusChange().
+    if (this.status !== 'offline') {
+      this.interpolateMetrics(deltaTime);
+      this.animateBandRotation(deltaTime);
+      this.updateGaugeFills();
+      this.updateBandRadii();
+    }
     this.updateHalo();
     this.updateShaderUniforms();
   }
@@ -463,11 +467,6 @@ export class MonitorTubePrefab extends BasePrefab {
       const mat = this.bandMaterials[i];
       if (i < this.currentMetrics.bands.length) {
         mat.uniforms.uValue.value = Math.max(0, Math.min(100, this.currentMetrics.bands[i].value));
-
-        const bandData = this.currentMetrics.bands[i];
-        if (bandData.color !== undefined) {
-          mat.uniforms.uColorLow.value.setHex(bandData.color);
-        }
       }
     }
   }
@@ -517,6 +516,12 @@ export class MonitorTubePrefab extends BasePrefab {
 
   private updateHalo(): void {
     if (!this.haloMaterial) {return;}
+
+    // Offline: no pulsing, regardless of stale gauge values
+    if (this.status === 'offline') {
+      this.haloMaterial.uniforms.uActivityLevel.value = 0;
+      return;
+    }
 
     let avgValue = 0;
     if (this.currentMetrics.bands.length > 0) {

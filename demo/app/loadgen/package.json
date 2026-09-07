@@ -1,0 +1,13 @@
+{
+  "name": "noodlebar-loadgen",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "loadgen.js",
+  "scripts": {
+    "start": "node loadgen.js"
+  },
+  "dependencies": {
+    "prom-client": "^15.1.3"
+  }
+}

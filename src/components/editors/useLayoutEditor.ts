@@ -28,7 +28,12 @@ export function useLayoutEditor(value: CityLayout, onChange: (layout: CityLayout
 
   const addBuilding = useCallback(
     (type: BuildingType) => {
-      const id = `b${Date.now()}`;
+      // crypto.randomUUID avoids collisions when two buildings are added
+      // within the same millisecond; fall back for non-secure contexts
+      const id =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? `b${crypto.randomUUID()}`
+          : `b${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       // Names are the (case-insensitive) join key with query data — after
       // deletions `count + 1` can collide with an existing building.
       const existingNames = new Set(value.buildings.map((b) => b.name.toLowerCase()));
@@ -93,18 +98,16 @@ export function useLayoutEditor(value: CityLayout, onChange: (layout: CityLayout
       const width = maxGridX - minGridX + 1;
       const height = maxGridZ - minGridZ + 1;
 
-      // Rebuild road grid with new bounds
+      // Rebuild road grid with new bounds. Rows may have heterogeneous lengths
+      // (hand-edited layout JSON) — fall back to '0' for missing cells so
+      // "undefined" never leaks into the road strings.
       const newRoads: string[] = [];
       for (let z = 0; z < height; z++) {
         let row = '';
         for (let x = 0; x < width; x++) {
           const oldGridX = x + minGridX;
           const oldGridZ = z + minGridZ;
-          if (oldGridX >= 0 && oldGridX < (roads[0]?.length ?? 0) && oldGridZ >= 0 && oldGridZ < roads.length) {
-            row += roads[oldGridZ][oldGridX];
-          } else {
-            row += '0';
-          }
+          row += (oldGridZ >= 0 && oldGridX >= 0 ? roads[oldGridZ]?.[oldGridX] : undefined) ?? '0';
         }
         newRoads.push(row);
       }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Building, BuildingStatus, BuildingActivity } from '../types';
 import { BasePrefab } from './BasePrefab';
-import { COLORS } from './materials';
+import { COLORS, createCanvasTexture } from './materials';
 import { createPyramidBeamMaterial, BEAM_PRESETS } from './shaders/PyramidBeamShader';
 
 /**
@@ -36,10 +36,12 @@ function createWindowTexture(
   windowRows: number,
   windowCols: number
 ): THREE.CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 64;
-  const ctx = canvas.getContext('2d')!;
+  const { canvas, ctx, texture } = createCanvasTexture(256, 64, {
+    wrapS: THREE.RepeatWrapping,
+    wrapT: THREE.ClampToEdgeWrapping,
+  });
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
 
   ctx.fillStyle = '#1a1a2e';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -86,12 +88,6 @@ function createWindowTexture(
       }
     }
   }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
 
   return texture;
 }
@@ -446,12 +442,13 @@ export class PyramidPrefab extends BasePrefab {
 
     let glowColor: number;
     let edgeOpacity: number;
-    let beamPreset: typeof BEAM_PRESETS.online;
+    // Beam preset is only meaningful for non-offline statuses: the beam is
+    // hidden offline and its uniforms are applied only when !isOffline.
+    let beamPreset: typeof BEAM_PRESETS.online | undefined;
 
     if (isOffline) {
       glowColor = 0x333344;
       edgeOpacity = 0.2;
-      beamPreset = BEAM_PRESETS.online;
     } else if (isWarning) {
       glowColor = COLORS.glow.orange;
       edgeOpacity = 0.9;
@@ -499,7 +496,7 @@ export class PyramidPrefab extends BasePrefab {
     if (this.lightBeam && this.lightBeamMaterial) {
       this.lightBeam.visible = !isOffline;
 
-      if (!isOffline) {
+      if (beamPreset) {
         this.lightBeamMaterial.uniforms.uOpacity.value = beamPreset.opacity;
         this.lightBeamMaterial.uniforms.uIntensity.value = beamPreset.intensity;
         this.lightBeamMaterial.uniforms.uPulseSpeed.value = beamPreset.pulseSpeed;

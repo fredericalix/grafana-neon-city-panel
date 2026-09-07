@@ -1,0 +1,164 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "nameField": "name",
+        "statusField": "status",
+        "valueField": "value",
+        "trafficDensityField": "traffic",
+        "trafficSpeedField": "",
+        "enableTraffic": true,
+        "enableInteraction": true,
+        "showLabels": true,
+        "thresholds": { "online": 90, "warning": 70, "critical": 0 },
+        "layout": {
+          "gridSize": 2,
+          "buildings": [
+            { "id": "loadgen", "name": "loadgen", "type": "windmill", "x": -8, "z": -6, "rotation": 0 },
+            { "id": "grafana", "name": "grafana", "type": "pyramid", "x": -8, "z": 3, "rotation": 0 },
+            { "id": "frontend-2", "name": "frontend-2", "type": "display_a", "x": -8, "z": 10, "rotation": 0 },
+            { "id": "backend-1", "name": "backend-1", "type": "tower_a", "x": -1, "z": -6, "rotation": 0 },
+            { "id": "backend-2", "name": "backend-2", "type": "tower_a", "x": -1, "z": 3, "rotation": 0 },
+            { "id": "orders", "name": "orders", "type": "bank", "x": -1, "z": 10, "rotation": 0, "defaultText": "ORDERS" },
+            { "id": "cadvisor", "name": "cadvisor", "type": "led_facade", "x": 6, "z": -6, "rotation": 0 },
+            { "id": "traefik", "name": "traefik", "type": "monitor_tube", "x": 6, "z": 5, "rotation": 0 },
+            { "id": "prometheus", "name": "prometheus", "type": "monitor_tube_giant", "x": 18, "z": 0, "rotation": 0 },
+            { "id": "frontend-1", "name": "frontend-1", "type": "display_a_giant", "x": 18, "z": 12, "rotation": 0, "defaultText": "NOODLE BAR" },
+            { "id": "postgres", "name": "postgres", "type": "farm_silo", "x": 13, "z": -6, "rotation": 0 }
+          ],
+          "roads": [
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "1111111111111111111111",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "1111111111111111111111",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "1111111111111111111111",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000",
+            "0000100000010000001000"
+          ],
+          "roadOrigin": { "x": -12, "z": -9 }
+        }
+      },
+      "targets": [
+        { "refId": "A", "expr": "neon:health", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "B", "expr": "neon:cpu", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "C", "expr": "neon:ram", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "D", "expr": "neon:fill", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "E", "expr": "neon:amount", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "F", "expr": "neon:reqps", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "G", "expr": "neon:p95ms", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "H", "expr": "neon:errpct", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "I", "expr": "neon:band1", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "J", "expr": "neon:band2", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "K", "expr": "neon:band3", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "L", "expr": "neon:traffic", "instant": true, "range": false, "format": "table", "legendFormat": "__auto", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "transformations": [
+        { "id": "filterFieldsByName", "options": { "exclude": { "pattern": "^(__name__|Time)$" } } },
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "indexByName": {},
+            "renameByName": {
+              "Value #A": "value",
+              "Value #B": "cpu",
+              "Value #C": "ram",
+              "Value #D": "fill",
+              "Value #E": "amount",
+              "Value #F": "text1",
+              "Value #G": "text2",
+              "Value #H": "text3",
+              "Value #I": "band1",
+              "Value #J": "band2",
+              "Value #K": "band3",
+              "Value #L": "traffic"
+            }
+          }
+        }
+      ],
+      "title": "Neon Noodle Bar — Live Infrastructure",
+      "type": "whooktown-neoncity-panel"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 20 },
+      "id": 2,
+      "options": {
+        "alertInstanceLabelFilter": "",
+        "alertName": "",
+        "dashboardAlerts": false,
+        "groupBy": [],
+        "groupMode": "default",
+        "maxItems": 20,
+        "sortOrder": 1,
+        "stateFilter": { "error": true, "firing": true, "noData": false, "normal": false, "pending": true }
+      },
+      "title": "Active alerts",
+      "type": "alertlist"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 8 }, "max": 100, "min": 0, "unit": "percent" },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 20 },
+      "id": 3,
+      "targets": [
+        { "refId": "A", "expr": "neon:health", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "Building health (0-100)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": {
+        "defaults": { "custom": { "fillOpacity": 8 }, "unit": "reqps" },
+        "overrides": []
+      },
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 20 },
+      "id": 4,
+      "targets": [
+        { "refId": "A", "expr": "sum by (name) (rate(http_requests_total[1m]))", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "Requests/s per instance",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["neon-city", "demo"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Neon City — Noodle Bar Infra",
+  "uid": "neon-city-live",
+  "version": 1,
+  "weekStart": ""
+}

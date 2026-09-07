@@ -73,7 +73,7 @@ export const BuildingProperties: React.FC<BuildingPropertiesProps> = ({ building
       </div>
 
       {/* Display Text — only for text-capable building types */}
-      {['tower_a', 'tower_b', 'display_a'].includes(building.type) && (
+      {['tower_a', 'tower_b', 'display_a', 'display_a_giant'].includes(building.type) && (
         <div style={rowStyle}>
           <div style={labelStyle}>Display Text</div>
           <input
@@ -86,8 +86,8 @@ export const BuildingProperties: React.FC<BuildingPropertiesProps> = ({ building
         </div>
       )}
 
-      {/* Neon Color — only for MonitorTubeGiant */}
-      {['monitor_tube_giant', 'display_a_giant'].includes(building.type) && (
+      {/* Neon Color — for building types that consume the color option */}
+      {['monitor_tube', 'monitor_tube_giant', 'display_a_giant'].includes(building.type) && (
         <div style={rowStyle}>
           <div style={labelStyle}>Neon Color</div>
           <select

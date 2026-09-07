@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Building, BuildingStatus, BuildingActivity } from '../types';
 import { BasePrefab } from './BasePrefab';
-import { COLORS } from './materials';
+import { COLORS, createCanvasTexture } from './materials';
 
 // Canvas re-render cadence (seconds) — ~15 Hz; per-frame 2D redraw + texture
 // upload is expensive and imperceptible above this rate.
@@ -126,12 +126,10 @@ export class LedFacadePrefab extends BasePrefab {
 
   private createLedFacades(): void {
     // Create shared canvas for LED facade texture
-    this.ledCanvas = document.createElement('canvas');
-    this.ledCanvas.width = 256;
-    this.ledCanvas.height = 512;
-    this.ledContext = this.ledCanvas.getContext('2d')!;
-
-    this.ledTexture = new THREE.CanvasTexture(this.ledCanvas);
+    const led = createCanvasTexture(256, 512);
+    this.ledCanvas = led.canvas;
+    this.ledContext = led.ctx;
+    this.ledTexture = led.texture;
     this.ledTexture.minFilter = THREE.LinearFilter;
     this.ledTexture.magFilter = THREE.LinearFilter;
 

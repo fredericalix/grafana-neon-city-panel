@@ -108,7 +108,23 @@ class MockVector3 {
     return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
   }
 
-  applyAxisAngle() {
+  crossVectors(a: MockVector3, b: MockVector3) {
+    const ax = a.x;
+    const ay = a.y;
+    const az = a.z;
+    const bx = b.x;
+    const by = b.y;
+    const bz = b.z;
+    this.x = ay * bz - az * by;
+    this.y = az * bx - ax * bz;
+    this.z = ax * by - ay * bx;
+    return this;
+  }
+
+  // Simplified projection: keeps x/y as NDC and forces z into the visible
+  // range so callers never see "behind camera" unless they set z themselves.
+  project(_camera: unknown) {
+    this.z = 0;
     return this;
   }
 }
@@ -125,6 +141,14 @@ class MockVector2 {
     this.x = x;
     this.y = y;
     return this;
+  }
+  copy(v: MockVector2) {
+    this.x = v.x;
+    this.y = v.y;
+    return this;
+  }
+  clone() {
+    return new MockVector2(this.x, this.y);
   }
 }
 
@@ -220,6 +244,11 @@ class MockObject3D {
   lookAt() {
     return this;
   }
+
+  // Local position is enough for tests: no matrix composition in the mock.
+  getWorldPosition(target: MockVector3) {
+    return target.copy(this.position);
+  }
 }
 
 class MockGroup extends MockObject3D {}
@@ -260,9 +289,9 @@ class MockPoints extends MockObject3D {
 
 // --- Geometries ---
 class MockBoxGeometry {
+  attributes: Record<string, any> = {};
+  index: any = null;
   dispose = jest.fn();
-  setAttribute = jest.fn();
-  getAttribute = jest.fn().mockReturnValue({ array: new Float32Array(0), count: 0 });
   rotateX = jest.fn().mockReturnThis();
   rotateY = jest.fn().mockReturnThis();
   rotateZ = jest.fn().mockReturnThis();
@@ -270,15 +299,35 @@ class MockBoxGeometry {
   scale = jest.fn().mockReturnThis();
   computeVertexNormals = jest.fn();
   toNonIndexed = jest.fn().mockReturnThis();
-  clone = jest.fn().mockReturnThis();
   center = jest.fn().mockReturnThis();
   setIndex = jest.fn();
-  deleteAttribute = jest.fn();
-  attributes = {};
-  index = null;
   setFromPoints = jest.fn().mockReturnThis();
   setDrawRange = jest.fn();
   copy = jest.fn().mockReturnThis();
+
+  setAttribute(name: string, attribute: any) {
+    this.attributes[name] = attribute;
+    return this;
+  }
+
+  getAttribute(name: string) {
+    return this.attributes[name] ?? { array: new Float32Array(0), count: 0 };
+  }
+
+  deleteAttribute(name: string) {
+    delete this.attributes[name];
+    return this;
+  }
+
+  // A clone is a NEW instance with its own dispose spy and its own attribute
+  // table — returning `this` would make dispose tests blind to double-dispose
+  // and leaked clones.
+  clone() {
+    const clone = new MockBoxGeometry();
+    clone.attributes = { ...this.attributes };
+    clone.index = this.index;
+    return clone;
+  }
 }
 
 const MockCylinderGeometry = MockBoxGeometry;
@@ -300,6 +349,9 @@ const MockIcosahedronGeometry = MockBoxGeometry;
 const MockWireframeGeometry = MockBoxGeometry;
 
 // --- Materials ---
+// Every clone() returns a NEW instance with its own dispose spy and copied
+// properties — mockReturnThis() would make dispose tests blind to
+// double-dispose bugs and leaked clones.
 class MockMeshStandardMaterial {
   color: MockColor;
   opacity: number;
@@ -314,7 +366,6 @@ class MockMeshStandardMaterial {
   depthWrite: boolean;
   needsUpdate: boolean;
   dispose = jest.fn();
-  clone = jest.fn().mockReturnThis();
 
   constructor(params?: Record<string, any>) {
     this.color = new MockColor(params?.color);
@@ -330,6 +381,41 @@ class MockMeshStandardMaterial {
     this.depthWrite = params?.depthWrite ?? true;
     this.needsUpdate = false;
   }
+
+  clone(): this {
+    const m = new (this.constructor as new (params?: Record<string, any>) => this)();
+    m.color = this.color.clone();
+    m.opacity = this.opacity;
+    m.transparent = this.transparent;
+    m.metalness = this.metalness;
+    m.roughness = this.roughness;
+    m.emissive = this.emissive.clone();
+    m.emissiveIntensity = this.emissiveIntensity;
+    m.side = this.side;
+    m.map = this.map;
+    m.visible = this.visible;
+    m.depthWrite = this.depthWrite;
+    m.needsUpdate = this.needsUpdate;
+    return m;
+  }
+}
+
+class MockMeshPhysicalMaterial extends MockMeshStandardMaterial {
+  clearcoat: number;
+  clearcoatRoughness: number;
+
+  constructor(params?: Record<string, any>) {
+    super(params);
+    this.clearcoat = params?.clearcoat ?? 0;
+    this.clearcoatRoughness = params?.clearcoatRoughness ?? 0;
+  }
+
+  clone(): this {
+    const m = super.clone();
+    (m as MockMeshPhysicalMaterial).clearcoat = this.clearcoat;
+    (m as MockMeshPhysicalMaterial).clearcoatRoughness = this.clearcoatRoughness;
+    return m;
+  }
 }
 
 class MockMeshBasicMaterial {
@@ -343,7 +429,6 @@ class MockMeshBasicMaterial {
   blending: number;
   needsUpdate: boolean;
   dispose = jest.fn();
-  clone = jest.fn().mockReturnThis();
 
   constructor(params?: Record<string, any>) {
     this.color = new MockColor(params?.color);
@@ -356,6 +441,20 @@ class MockMeshBasicMaterial {
     this.blending = params?.blending ?? 1;
     this.needsUpdate = false;
   }
+
+  clone(): this {
+    const m = new (this.constructor as new (params?: Record<string, any>) => this)();
+    m.color = this.color.clone();
+    m.opacity = this.opacity;
+    m.transparent = this.transparent;
+    m.side = this.side;
+    m.map = this.map;
+    m.visible = this.visible;
+    m.depthWrite = this.depthWrite;
+    m.blending = this.blending;
+    m.needsUpdate = this.needsUpdate;
+    return m;
+  }
 }
 
 class MockLineBasicMaterial {
@@ -364,13 +463,21 @@ class MockLineBasicMaterial {
   transparent: boolean;
   linewidth: number;
   dispose = jest.fn();
-  clone = jest.fn().mockReturnThis();
 
   constructor(params?: Record<string, any>) {
     this.color = new MockColor(params?.color);
     this.opacity = params?.opacity ?? 1;
     this.transparent = params?.transparent ?? false;
     this.linewidth = params?.linewidth ?? 1;
+  }
+
+  clone(): this {
+    const m = new (this.constructor as new (params?: Record<string, any>) => this)();
+    m.color = this.color.clone();
+    m.opacity = this.opacity;
+    m.transparent = this.transparent;
+    m.linewidth = this.linewidth;
+    return m;
   }
 }
 
@@ -384,7 +491,6 @@ class MockShaderMaterial {
   blending: number;
   needsUpdate: boolean;
   dispose = jest.fn();
-  clone = jest.fn().mockReturnThis();
 
   constructor(params?: Record<string, any>) {
     this.uniforms = params?.uniforms ?? {};
@@ -395,6 +501,26 @@ class MockShaderMaterial {
     this.depthWrite = params?.depthWrite ?? true;
     this.blending = params?.blending ?? 1;
     this.needsUpdate = false;
+  }
+
+  clone(): this {
+    const m = new (this.constructor as new (params?: Record<string, any>) => this)();
+    // Clone uniform values when possible so a clone doesn't alias the
+    // original's Vector3/Color instances.
+    m.uniforms = Object.fromEntries(
+      Object.entries(this.uniforms).map(([key, uniform]) => [
+        key,
+        { ...uniform, value: uniform?.value?.clone ? uniform.value.clone() : uniform?.value },
+      ])
+    );
+    m.vertexShader = this.vertexShader;
+    m.fragmentShader = this.fragmentShader;
+    m.transparent = this.transparent;
+    m.side = this.side;
+    m.depthWrite = this.depthWrite;
+    m.blending = this.blending;
+    m.needsUpdate = this.needsUpdate;
+    return m;
   }
 }
 
@@ -417,29 +543,28 @@ class MockPointsMaterial {
     this.depthWrite = params?.depthWrite ?? true;
     this.blending = params?.blending ?? 1;
   }
+
+  clone(): this {
+    const m = new (this.constructor as new (params?: Record<string, any>) => this)();
+    m.color = this.color.clone();
+    m.size = this.size;
+    m.transparent = this.transparent;
+    m.opacity = this.opacity;
+    m.sizeAttenuation = this.sizeAttenuation;
+    m.depthWrite = this.depthWrite;
+    m.blending = this.blending;
+    return m;
+  }
 }
 
 const MockMeshPhongMaterial = MockMeshStandardMaterial;
 
 // --- BufferAttribute ---
-class MockFloat32BufferAttribute {
-  array: Float32Array;
-  count: number;
-  itemSize: number;
-
-  constructor(array: ArrayLike<number>, itemSize: number) {
-    this.array = new Float32Array(array);
-    this.count = this.array.length / itemSize;
-    this.itemSize = itemSize;
-  }
-
-  setUsage = jest.fn().mockReturnThis();
-}
-
 class MockBufferAttribute {
   array: ArrayLike<number>;
   count: number;
   itemSize: number;
+  needsUpdate = false;
 
   constructor(array: ArrayLike<number>, itemSize: number) {
     this.array = array;
@@ -448,6 +573,34 @@ class MockBufferAttribute {
   }
 
   setUsage = jest.fn().mockReturnThis();
+
+  getX(i: number) {
+    return this.array[i * this.itemSize];
+  }
+  getY(i: number) {
+    return this.array[i * this.itemSize + 1];
+  }
+  getZ(i: number) {
+    return this.array[i * this.itemSize + 2];
+  }
+  setX(i: number, x: number) {
+    (this.array as Float32Array)[i * this.itemSize] = x;
+    return this;
+  }
+  setY(i: number, y: number) {
+    (this.array as Float32Array)[i * this.itemSize + 1] = y;
+    return this;
+  }
+  setZ(i: number, z: number) {
+    (this.array as Float32Array)[i * this.itemSize + 2] = z;
+    return this;
+  }
+}
+
+class MockFloat32BufferAttribute extends MockBufferAttribute {
+  constructor(array: ArrayLike<number>, itemSize: number) {
+    super(new Float32Array(array), itemSize);
+  }
 }
 
 // --- Raycaster ---
@@ -484,6 +637,7 @@ class MockScene extends MockObject3D {
 class MockLight extends MockObject3D {
   color: MockColor;
   intensity: number;
+  dispose = jest.fn();
   constructor(color?: number, intensity?: number) {
     super();
     this.color = new MockColor(color);
@@ -494,7 +648,14 @@ class MockLight extends MockObject3D {
 class MockAmbientLight extends MockLight {}
 class MockDirectionalLight extends MockLight {
   shadow = {
-    mapSize: { width: 512, height: 512 },
+    mapSize: {
+      width: 512,
+      height: 512,
+      set(width: number, height: number) {
+        this.width = width;
+        this.height = height;
+      },
+    },
     camera: { near: 0.5, far: 500, left: -10, right: 10, top: 10, bottom: -10 },
     bias: 0,
   };
@@ -513,6 +674,7 @@ class MockHemisphereLight extends MockObject3D {
   color: MockColor;
   groundColor: MockColor;
   intensity: number;
+  dispose = jest.fn();
   constructor(skyColor?: number, groundColor?: number, intensity?: number) {
     super();
     this.color = new MockColor(skyColor);
@@ -559,13 +721,41 @@ class MockTexture {
   magFilter = 1006;
   wrapS = 1001;
   wrapT = 1001;
+  offset = new MockVector2(0, 0);
+  repeat = new MockVector2(1, 1);
+  center = new MockVector2(0, 0);
   dispose = jest.fn();
-  clone = jest.fn().mockReturnThis();
+
+  clone(): this {
+    const m = new (this.constructor as new () => this)();
+    m.image = this.image;
+    m.needsUpdate = this.needsUpdate;
+    m.minFilter = this.minFilter;
+    m.magFilter = this.magFilter;
+    m.wrapS = this.wrapS;
+    m.wrapT = this.wrapT;
+    m.offset = this.offset.clone();
+    m.repeat = this.repeat.clone();
+    m.center = this.center.clone();
+    return m;
+  }
 }
 
 class MockCanvasTexture extends MockTexture {
   constructor(_canvas?: any) {
     super();
+  }
+}
+
+// --- Fog ---
+class MockFog {
+  color: MockColor;
+  near: number;
+  far: number;
+  constructor(color?: number | string, near = 1, far = 1000) {
+    this.color = new MockColor(color as number | undefined);
+    this.near = near;
+    this.far = far;
   }
 }
 
@@ -575,15 +765,6 @@ class MockShape {
   lineTo = jest.fn().mockReturnThis();
   absarc = jest.fn().mockReturnThis();
   closePath = jest.fn().mockReturnThis();
-}
-
-class MockCatmullRomCurve3 {
-  points: MockVector3[];
-  constructor(points: MockVector3[] = []) {
-    this.points = points;
-  }
-  getPoints = jest.fn().mockReturnValue([]);
-  getPoint = jest.fn().mockReturnValue(new MockVector3());
 }
 
 // --- Constants ---
@@ -633,6 +814,7 @@ export {
   MockWebGLRenderer as WebGLRenderer,
   MockRaycaster as Raycaster,
   MockClock as Clock,
+  MockFog as Fog,
 
   // Geometries
   MockBoxGeometry as BoxGeometry,
@@ -660,6 +842,7 @@ export {
 
   // Materials
   MockMeshStandardMaterial as MeshStandardMaterial,
+  MockMeshPhysicalMaterial as MeshPhysicalMaterial,
   MockMeshBasicMaterial as MeshBasicMaterial,
   MockLineBasicMaterial as LineBasicMaterial,
   MockShaderMaterial as ShaderMaterial,
@@ -678,7 +861,6 @@ export {
 
   // Misc
   MockShape as Shape,
-  MockCatmullRomCurve3 as CatmullRomCurve3,
 
   // Constants
   FrontSide,

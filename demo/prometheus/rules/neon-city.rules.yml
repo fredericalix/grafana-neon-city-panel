@@ -1,0 +1,131 @@
+# Recording rules = the data contract between Prometheus and the neon-city
+# dashboard. Every neon:* series carries a `name` label matching a building
+# in the panel layout. The dashboard only ever queries neon:* one-liners.
+groups:
+  - name: neon-city
+    interval: 5s
+    rules:
+      # ── request-level series (used by health below, keep first) ──────────
+      # 5xx ratio per instance; the `or` fallback pins it to 0 when there are
+      # no errors (an absent numerator would otherwise drop the series).
+      - record: neon:errratio
+        expr: |
+          (
+            sum by (name) (rate(http_requests_total{status_code=~"5.."}[1m]))
+            /
+            sum by (name) (rate(http_requests_total[1m]))
+          )
+          or
+          (sum by (name) (rate(http_requests_total[1m])) * 0)
+
+      - record: neon:p95s
+        expr: |
+          histogram_quantile(0.95, sum by (name, le) (rate(http_request_duration_seconds_bucket[1m])))
+
+      # ── health (0-100, thresholded by the panel: online>=90, warning>=70) ─
+      # Backends: penalties for error rate (>5%) and slow p95 (>0.5s), so
+      # chaos drops them to warning (65-80) before critical.
+      # Everything else (except postgres, below): alive = 100, dead = 0.
+      - record: neon:health
+        expr: |
+          clamp_min(
+            100 * max by (name) (up{name=~"backend-.+"})
+            - (35 * (neon:errratio{name=~"backend-.+"} > bool 0.05)
+               or 0 * max by (name) (up{name=~"backend-.+"}))
+            - (20 * (neon:p95s{name=~"backend-.+"} > bool 0.5)
+               or 0 * max by (name) (up{name=~"backend-.+"}))
+          , 0)
+          or
+          100 * max by (name) (up{name!~"backend-.+|postgres"})
+
+      # Postgres: measured through the exporter's pg_up probe.
+      - record: neon:health
+        labels: { name: postgres }
+        expr: 100 * max(pg_up)
+
+      # Synthetic "orders" building (the bank): healthy while any backend is.
+      - record: neon:health
+        labels: { name: orders }
+        expr: 100 * max(up{service="backend"})
+
+      # ── container resources (cAdvisor, per compose service) ──────────────
+      - record: neon:cpu
+        expr: |
+          clamp_max(100 * sum by (name) (
+            label_replace(
+              rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_project="neon-demo"}[1m]),
+              "name", "$1", "container_label_com_docker_compose_service", "(.+)")
+          ), 100)
+
+      - record: neon:ram
+        expr: |
+          clamp_max(100 *
+            sum by (name) (label_replace(
+              container_memory_working_set_bytes{container_label_com_docker_compose_project="neon-demo"},
+              "name", "$1", "container_label_com_docker_compose_service", "(.+)"))
+            /
+            sum by (name) (label_replace(
+              container_spec_memory_limit_bytes{container_label_com_docker_compose_project="neon-demo"} > 0,
+              "name", "$1", "container_label_com_docker_compose_service", "(.+)"))
+          , 100)
+
+      # ── building-specific gauges ──────────────────────────────────────────
+      # farm_silo fill = connection slots used
+      - record: neon:fill
+        labels: { name: postgres }
+        expr: clamp_max(100 * sum(pg_stat_activity_count) / max(pg_settings_max_connections), 100)
+
+      # bank amount = total ramen orders
+      - record: neon:amount
+        labels: { name: orders }
+        expr: sum(noodlebar_orders_total)
+
+      # texts (rendered as-is by the panel; keep them rounded)
+      - record: neon:reqps
+        expr: round(sum by (name) (rate(http_requests_total[1m])) * 10) / 10
+
+      - record: neon:p95ms
+        expr: round(1000 * neon:p95s) >= 0
+
+      - record: neon:errpct
+        expr: round(100 * neon:errratio)
+
+      # ── road traffic density (0-100, city-wide) ───────────────────────────
+      # Broadcast onto every building row (0 * neon:health keeps the name
+      # labels) so the merged dashboard table has a non-null traffic value on
+      # every row — the panel reads the column's last value.
+      - record: neon:traffic
+        expr: |
+          0 * neon:health
+          + scalar(clamp_max(4 * sum(rate(http_requests_total{service=~"frontend|backend"}[1m])), 100))
+
+      # ── monitor tube bands ────────────────────────────────────────────────
+      # prometheus (monitor_tube_giant): targets up %, ingest rate, head series
+      - record: neon:band1
+        labels: { name: prometheus }
+        expr: round(100 * avg(up))
+
+      - record: neon:band2
+        labels: { name: prometheus }
+        expr: clamp_max(sum(rate(prometheus_tsdb_head_samples_appended_total[1m])) / 50, 100)
+
+      - record: neon:band3
+        labels: { name: prometheus }
+        expr: clamp_max(max(prometheus_tsdb_head_series) / 50, 100)
+
+      # traefik (monitor_tube): edge req/s, 5xx %, open connections
+      - record: neon:band1
+        labels: { name: traefik }
+        expr: clamp_max(4 * sum(rate(traefik_entrypoint_requests_total{entrypoint="web"}[1m])), 100)
+
+      - record: neon:band2
+        labels: { name: traefik }
+        expr: |
+          round(100 *
+            sum(rate(traefik_service_requests_total{code=~"5.."}[1m]))
+            / clamp_min(sum(rate(traefik_service_requests_total[1m])), 0.001)
+          ) or vector(0)
+
+      - record: neon:band3
+        labels: { name: traefik }
+        expr: clamp_max(10 * sum(traefik_open_connections), 100) or vector(0)

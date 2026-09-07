@@ -133,6 +133,8 @@ export class WindmillPrefab extends BasePrefab {
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.position.y = y;
       ring.rotation.x = Math.PI / 2;
+      // Original color, restored by onStatusChange when leaving warning/critical
+      ring.userData.baseColor = colors[i];
       this.neonRings.push(ring);
       this.addGlowMesh(ring);
       this.group.add(ring);
@@ -246,6 +248,7 @@ export class WindmillPrefab extends BasePrefab {
     });
     const outer = new THREE.Mesh(outerGeo, outerMat);
     outer.position.set(0, 0.85, 0.18);
+    outer.userData.baseColor = COLORS.glow.magenta;
     this.neonRings.push(outer);
     this.addGlowMesh(outer);
     this.group.add(outer);
@@ -303,7 +306,9 @@ export class WindmillPrefab extends BasePrefab {
         } else if (isWarning) {
           ring.material.color.setHex(COLORS.glow.orange);
         } else {
-          ring.material.color.setHex(COLORS.glow.cyan);
+          // Restore the ring's original color (the design alternates cyan/magenta)
+          const baseColor = typeof ring.userData.baseColor === 'number' ? ring.userData.baseColor : COLORS.glow.cyan;
+          ring.material.color.setHex(baseColor);
         }
       }
     });

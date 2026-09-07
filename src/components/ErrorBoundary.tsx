@@ -21,7 +21,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Neon City: 3D rendering error', error, info.componentStack);
+    console.error('[neon-city-panel] 3D rendering error', error, info.componentStack);
   }
 
   // Transient failures (e.g. WebGL context loss) are recoverable: remounting

@@ -24,6 +24,10 @@ export class CityEngine {
   private prefabs: Map<string, BasePrefab> = new Map();
   private buildings: Map<string, Building> = new Map();
   private buildingStates: Map<string, BuildingState> = new Map();
+  // Case-insensitive join from query names (BuildingState.id) to the stable
+  // layout building ids that key prefabs/buildings/buildingStates. Rebuilt in
+  // setBuildings().
+  private nameToId: Map<string, string> = new Map();
   private roadNetwork!: RoadNetwork;
   private trafficManager: TrafficManager | null = null;
   private trafficEnabled = true;
@@ -358,6 +362,15 @@ export class CityEngine {
   setBuildings(buildings: Building[]): void {
     const newIds = new Set(buildings.map((b) => b.id));
 
+    // Rebuild the name → id join map (names may have changed without any id
+    // change; duplicate names alias, which CityPanel already warns about).
+    this.nameToId.clear();
+    for (const b of buildings) {
+      if (b.name) {
+        this.nameToId.set(b.name.toLowerCase(), b.id);
+      }
+    }
+
     // Remove buildings not in the new layout
     for (const [id, prefab] of this.prefabs) {
       if (!newIds.has(id)) {
@@ -373,12 +386,23 @@ export class CityEngine {
     // Add/update buildings
     for (const building of buildings) {
       const previous = this.buildings.get(building.id);
-      this.buildings.set(building.id, building);
+      // Type/color changes require a rebuild — the prefab geometry and
+      // materials are derived from them at construction time. (Captured before
+      // the in-place update below.)
+      const needsRebuild =
+        previous !== undefined && (previous.type !== building.type || previous.color !== building.color);
+      if (previous) {
+        // Prefabs keep the Building object passed to their constructor, so
+        // update the stored object in place: renames then reach labels and
+        // prefab display text without rebuilding the prefab.
+        Object.assign(previous, building);
+      } else {
+        this.buildings.set(building.id, building);
+      }
+      const stored = previous ?? building;
 
       let prefab = this.prefabs.get(building.id);
-      // Type/color changes require a rebuild — the prefab geometry and
-      // materials are derived from them at construction time.
-      if (prefab && previous && (previous.type !== building.type || previous.color !== building.color)) {
+      if (prefab && needsRebuild) {
         this.scene.remove(prefab.getObject());
         prefab.dispose();
         this.prefabs.delete(building.id);
@@ -386,7 +410,7 @@ export class CityEngine {
       }
 
       if (!prefab) {
-        prefab = createPrefab(building);
+        prefab = createPrefab(stored);
         this.scene.add(prefab.getObject());
         this.prefabs.set(building.id, prefab);
         // Re-apply the last known data state so a rebuilt prefab doesn't
@@ -414,9 +438,13 @@ export class CityEngine {
    */
   updateStates(states: BuildingState[]): void {
     for (const state of states) {
-      // Case-insensitive join: building ids are lowercased in CityPanel,
-      // query names keep whatever casing the datasource returns.
-      const key = state.id.toLowerCase();
+      // state.id is the building *name* from the query (dataMapper); resolve
+      // it to the stable layout id so prefabs survive renames. Rows without a
+      // matching building are ignored — the diagnostic overlay surfaces them.
+      const key = this.nameToId.get(state.id.toLowerCase());
+      if (key === undefined) {
+        continue;
+      }
       this.buildingStates.set(key, state);
       const prefab = this.prefabs.get(key);
       if (prefab) {

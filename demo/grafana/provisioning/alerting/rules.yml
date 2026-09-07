@@ -1,0 +1,210 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: neon-city
+    folder: Neon City
+    interval: 30s
+    rules:
+      - uid: neon-replica-down
+        title: ReplicaDown
+        condition: B
+        for: 1m
+        noDataState: OK
+        execErrState: OK
+        labels: { severity: critical }
+        annotations:
+          summary: "Instance {{ $labels.name }} is down — its building just went dark."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: neon-prom
+            model: { refId: A, expr: up, instant: true }
+          - refId: B
+            relativeTimeRange: { from: 0, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - type: query
+                  evaluator: { type: lt, params: [1] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: neon-service-down
+        title: ServiceDown
+        condition: B
+        for: 1m
+        noDataState: OK
+        execErrState: OK
+        labels: { severity: critical }
+        annotations:
+          summary: "All {{ $labels.service }} replicas are down — the service is offline despite HA."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: neon-prom
+            model: { refId: A, expr: 'max by (service) (up{service=~"frontend|backend"})', instant: true }
+          - refId: B
+            relativeTimeRange: { from: 0, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - type: query
+                  evaluator: { type: lt, params: [1] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: neon-postgres-down
+        title: PostgresDown
+        condition: B
+        for: 1m
+        noDataState: OK
+        execErrState: OK
+        labels: { severity: critical }
+        annotations:
+          summary: "PostgreSQL is unreachable — the silo building is dark and orders fail."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: neon-prom
+            model: { refId: A, expr: pg_up, instant: true }
+          - refId: B
+            relativeTimeRange: { from: 0, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - type: query
+                  evaluator: { type: lt, params: [1] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: neon-high-error-rate
+        title: HighErrorRate
+        condition: B
+        for: 2m
+        noDataState: OK
+        execErrState: OK
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.name }} serves >5% HTTP 5xx — its tower is glowing warning/critical."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: neon-prom
+            model: { refId: A, expr: 'neon:errpct{name=~"backend-.+"}', instant: true }
+          - refId: B
+            relativeTimeRange: { from: 0, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - type: query
+                  evaluator: { type: gt, params: [5] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: neon-high-latency
+        title: HighLatency
+        condition: B
+        for: 2m
+        noDataState: OK
+        execErrState: OK
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.name }} p95 latency exceeds 500ms."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: neon-prom
+            model: { refId: A, expr: 'neon:p95ms{name=~"backend-.+"}', instant: true }
+          - refId: B
+            relativeTimeRange: { from: 0, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - type: query
+                  evaluator: { type: gt, params: [500] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: neon-high-cpu
+        title: HighCPU
+        condition: B
+        for: 1m
+        noDataState: OK
+        execErrState: OK
+        labels: { severity: warning }
+        annotations:
+          summary: "Container {{ $labels.name }} burns >70% CPU."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: neon-prom
+            model: { refId: A, expr: 'neon:cpu', instant: true }
+          - refId: B
+            relativeTimeRange: { from: 0, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - type: query
+                  evaluator: { type: gt, params: [70] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }
+
+      - uid: neon-pg-connections-high
+        title: PgConnectionsHigh
+        condition: B
+        for: 1m
+        noDataState: OK
+        execErrState: OK
+        labels: { severity: warning }
+        annotations:
+          summary: "PostgreSQL uses >80% of its connection slots — the silo is nearly full."
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: neon-prom
+            model: { refId: A, expr: 'neon:fill', instant: true }
+          - refId: B
+            relativeTimeRange: { from: 0, to: 0 }
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: threshold
+              expression: A
+              datasource: { type: __expr__, uid: __expr__ }
+              conditions:
+                - type: query
+                  evaluator: { type: gt, params: [80] }
+                  operator: { type: and }
+                  query: { params: [B] }
+                  reducer: { type: last, params: [] }

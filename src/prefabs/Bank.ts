@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Building, BuildingStatus, BuildingActivity, BuildingState, BankQuantity } from '../types';
 import { BasePrefab } from './BasePrefab';
-import { COLORS } from './materials';
+import { COLORS, createCanvasTexture } from './materials';
 
 // Gold color for holographic bars
 const GOLD_COLOR = 0xffd700;
@@ -37,6 +37,8 @@ export class BankPrefab extends BasePrefab {
   private projectionCone!: THREE.Mesh;
   private goldParticles!: THREE.Points;
   private frameGlowBars: THREE.Mesh[] = [];
+  // Last value painted on the amount canvas — repaint is skipped when unchanged
+  private lastRenderedAmount: number | null = null;
 
   constructor(building: Building) {
     super(building);
@@ -506,12 +508,10 @@ export class BankPrefab extends BasePrefab {
     this.createGlowingFrame(1.6, 0.5);
 
     // Canvas texture for amount digits
-    this.amountCanvas = document.createElement('canvas');
-    this.amountCanvas.width = 1024;
-    this.amountCanvas.height = 320;
-    this.amountContext = this.amountCanvas.getContext('2d')!;
-
-    this.amountTexture = new THREE.CanvasTexture(this.amountCanvas);
+    const amount = createCanvasTexture(1024, 320);
+    this.amountCanvas = amount.canvas;
+    this.amountContext = amount.ctx;
+    this.amountTexture = amount.texture;
     this.amountTexture.needsUpdate = true;
 
     const displayMat = new THREE.MeshBasicMaterial({
@@ -760,10 +760,16 @@ export class BankPrefab extends BasePrefab {
     // Treat non-finite numbers (NaN/Infinity) as absent, like null
     if (amount === null || amount === undefined || !Number.isFinite(amount)) {
       this.displayPanel.visible = false;
-    } else {
-      this.displayPanel.visible = true;
-      this.updateAmountTexture(amount);
+      this.lastRenderedAmount = null;
+      return;
     }
+    this.displayPanel.visible = true;
+    // Skip the costly 1024x320 repaint (5 shadowBlur passes) when the value is unchanged
+    if (amount === this.lastRenderedAmount) {
+      return;
+    }
+    this.lastRenderedAmount = amount;
+    this.updateAmountTexture(amount);
   }
 
   override updateData(state: BuildingState): void {
@@ -931,7 +937,9 @@ export class BankPrefab extends BasePrefab {
         for (let i = 0; i < positions.count; i++) {
           const x = positions.getX(i);
           const z = positions.getZ(i);
-          const angle = Math.atan2(z, x / 0.3) + deltaTime * 0.8;
+          // Ellipse parametrized as x = cos(a)·r, z = sin(a)·r·0.3 — un-squash z
+          // before atan2 so the angular speed stays uniform along the orbit
+          const angle = Math.atan2(z / 0.3, x) + deltaTime * 0.8;
           const radius = Math.sqrt(x * x + (z / 0.3) * (z / 0.3));
           positions.setX(i, Math.cos(angle) * radius);
           positions.setZ(i, Math.sin(angle) * radius * 0.3);

@@ -83,7 +83,6 @@ export class DataPacket extends VehicleBase {
     // === Particle Aura ===
     const particleCount = 20;
     const particlePositions = new Float32Array(particleCount * 3);
-    const particleSizes = new Float32Array(particleCount);
 
     for (let i = 0; i < particleCount; i++) {
       const theta = Math.random() * Math.PI * 2;
@@ -93,12 +92,10 @@ export class DataPacket extends VehicleBase {
       particlePositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       particlePositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       particlePositions[i * 3 + 2] = r * Math.cos(phi);
-      particleSizes[i] = 2 + Math.random() * 3;
     }
 
     const particleGeometry = new THREE.BufferGeometry();
     particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-    particleGeometry.setAttribute('size', new THREE.BufferAttribute(particleSizes, 1));
 
     const particleMaterial = new THREE.PointsMaterial({
       color: this.packetColor,

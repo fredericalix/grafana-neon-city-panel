@@ -1,0 +1,163 @@
+name: neon-demo
+
+services:
+  # ── Edge / HA load balancer ──────────────────────────────────────────────
+  traefik:
+    image: traefik:v3.5
+    container_name: neon-demo-traefik
+    # File provider (not docker discovery): the HA topology is static and this
+    # avoids Docker API version mismatches and mounting the docker socket.
+    command:
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --entrypoints.web.address=:80
+      - --entrypoints.metrics.address=:9101
+      - --metrics.prometheus=true
+      - --metrics.prometheus.entrypoint=metrics
+      - --metrics.prometheus.addserviceslabels=true
+      - --ping=true
+    ports:
+      - "8088:80"
+    volumes:
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+    mem_limit: 256m
+
+  # ── Frontend (2 replicas, load-balanced by Traefik) ──────────────────────
+  frontend-1:
+    build: ./app/frontend
+    container_name: neon-demo-frontend-1
+    environment:
+      INSTANCE: frontend-1
+    mem_limit: 128m
+
+  frontend-2:
+    build: ./app/frontend
+    container_name: neon-demo-frontend-2
+    environment:
+      INSTANCE: frontend-2
+    mem_limit: 128m
+
+  # ── Backend API (2 replicas, load-balanced by Traefik) ───────────────────
+  backend-1:
+    build: ./app/backend
+    container_name: neon-demo-backend-1
+    environment:
+      INSTANCE: backend-1
+      DATABASE_URL: postgres://noodle:noodle@postgres:5432/noodlebar
+    ports:
+      - "8081:8080" # direct access for chaos.sh
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    mem_limit: 256m
+
+  backend-2:
+    build: ./app/backend
+    container_name: neon-demo-backend-2
+    environment:
+      INSTANCE: backend-2
+      DATABASE_URL: postgres://noodle:noodle@postgres:5432/noodlebar
+    ports:
+      - "8082:8080" # direct access for chaos.sh
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    mem_limit: 256m
+
+  # ── Database ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: neon-demo-postgres
+    environment:
+      POSTGRES_USER: noodle
+      POSTGRES_PASSWORD: noodle
+      POSTGRES_DB: noodlebar
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U noodle -d noodlebar"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    mem_limit: 512m
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    container_name: neon-demo-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: postgresql://noodle:noodle@postgres:5432/noodlebar?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: 128m
+
+  # ── Load generator (keeps the city alive) ────────────────────────────────
+  loadgen:
+    build: ./app/loadgen
+    container_name: neon-demo-loadgen
+    environment:
+      TARGET_URL: http://traefik
+      BASE_RPS: "3"
+    depends_on:
+      - traefik
+      - frontend-1
+      - frontend-2
+      - backend-1
+      - backend-2
+    mem_limit: 128m
+
+  # ── Observability ────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: neon-demo-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+    mem_limit: 512m
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: neon-demo-cadvisor
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+    mem_limit: 256m
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-13.1.4}
+    container_name: neon-demo-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: whooktown-neoncity-panel
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_BASIC_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/neon-city.json
+    volumes:
+      - ../dist:/var/lib/grafana/plugins/whooktown-neoncity-panel:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    mem_limit: 512m
+
+volumes:
+  pgdata:

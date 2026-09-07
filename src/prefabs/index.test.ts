@@ -25,6 +25,12 @@ function makeBuilding(type: string, id = 'test-1'): Building {
 }
 
 describe('createPrefab', () => {
+  // The initialize spy is installed once at module scope — reset its call
+  // history between tests so assertions reflect only the current test.
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it.each([
     ['windmill', WindmillPrefab],
     ['tower_a', TowerAPrefab],
@@ -59,6 +65,6 @@ describe('createPrefab', () => {
 
   it('calls initialize on created prefab', () => {
     createPrefab(makeBuilding('windmill'));
-    expect(BasePrefab.prototype.initialize).toHaveBeenCalled();
+    expect(BasePrefab.prototype.initialize).toHaveBeenCalledTimes(1);
   });
 });

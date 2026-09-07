@@ -1,0 +1,88 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg: #0a0a14;
+  --panel: #11112090;
+  --cyan: #00e5ff;
+  --magenta: #ff2ec4;
+  --yellow: #ffe14d;
+  --text: #d8e6ff;
+  --dim: #7a86a8;
+}
+
+body {
+  background: radial-gradient(ellipse at top, #16162c 0%, var(--bg) 60%);
+  color: var(--text);
+  font-family: "Courier New", ui-monospace, monospace;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+}
+
+header { text-align: center; margin-bottom: 2rem; }
+
+h1 {
+  font-size: clamp(1.8rem, 5vw, 3.2rem);
+  letter-spacing: 0.3em;
+  color: var(--cyan);
+  text-shadow: 0 0 8px var(--cyan), 0 0 32px #00e5ff66;
+}
+
+h1 span { color: var(--magenta); text-shadow: 0 0 8px var(--magenta), 0 0 32px #ff2ec466; }
+
+.tagline { color: var(--dim); letter-spacing: 0.5em; margin-top: 0.5rem; }
+
+.served { color: var(--yellow); margin-top: 0.75rem; font-size: 0.85rem; }
+
+main {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: 0 0 24px #00000088, inset 0 0 60px #0d0d1e;
+}
+
+.panel h2 { color: var(--magenta); font-size: 0.9rem; letter-spacing: 0.2em; margin-bottom: 1rem; }
+
+.menu li, .orders li {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px dashed #2a2a4a;
+  font-size: 0.9rem;
+}
+
+.menu .price { color: var(--yellow); white-space: nowrap; }
+
+.menu button {
+  background: transparent;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.menu button:hover { background: var(--cyan); color: var(--bg); box-shadow: 0 0 12px var(--cyan); }
+
+.orders .who { color: var(--dim); font-size: 0.75rem; }
+
+.orders li.fresh { animation: flash 1s ease-out; }
+
+@keyframes flash { from { background: #00e5ff22; } to { background: transparent; } }
+
+footer { text-align: center; margin-top: 2.5rem; color: var(--dim); font-size: 0.75rem; }
+footer strong { color: var(--cyan); }

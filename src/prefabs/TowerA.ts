@@ -161,7 +161,7 @@ export class TowerAPrefab extends BasePrefab {
       { pos: [-this.TOWER_WIDTH / 2 - 0.01, 0, 0], rot: [0, -Math.PI / 2, 0] },
     ];
 
-    for (const screen of screenPositions) {
+    for (const placement of screenPositions) {
       const frameMat = new THREE.MeshStandardMaterial({
         color: COLORS.building.metal,
         metalness: 0.9,
@@ -174,11 +174,11 @@ export class TowerAPrefab extends BasePrefab {
       );
       const frame = new THREE.Mesh(frameGeo, frameMat);
       frame.position.set(
-        screen.pos[0],
+        placement.pos[0],
         0.15 + this.TOWER_HEIGHT / 2 + 0.3,
-        screen.pos[2]
+        placement.pos[2]
       );
-      frame.rotation.set(screen.rot[0], screen.rot[1], screen.rot[2]);
+      frame.rotation.set(placement.rot[0], placement.rot[1], placement.rot[2]);
       this.group.add(frame);
 
       const screenMat = new THREE.MeshBasicMaterial({
@@ -191,11 +191,11 @@ export class TowerAPrefab extends BasePrefab {
       const frameDepthHalf = 0.04;
       const screenOffset = 0.02;
       screenMesh.position.set(
-        screen.pos[0] === 0 ? 0 : (screen.pos[0] > 0 ? screen.pos[0] + frameDepthHalf + screenOffset : screen.pos[0] - frameDepthHalf - screenOffset),
+        placement.pos[0] === 0 ? 0 : (placement.pos[0] > 0 ? placement.pos[0] + frameDepthHalf + screenOffset : placement.pos[0] - frameDepthHalf - screenOffset),
         0.15 + this.TOWER_HEIGHT / 2 + 0.3,
-        screen.pos[2] === 0 ? 0 : (screen.pos[2] > 0 ? screen.pos[2] + frameDepthHalf + screenOffset : screen.pos[2] - frameDepthHalf - screenOffset)
+        placement.pos[2] === 0 ? 0 : (placement.pos[2] > 0 ? placement.pos[2] + frameDepthHalf + screenOffset : placement.pos[2] - frameDepthHalf - screenOffset)
       );
-      screenMesh.rotation.set(screen.rot[0], screen.rot[1], screen.rot[2]);
+      screenMesh.rotation.set(placement.rot[0], placement.rot[1], placement.rot[2]);
       this.screenMeshes.push(screenMesh);
       this.group.add(screenMesh);
 
@@ -216,11 +216,11 @@ export class TowerAPrefab extends BasePrefab {
       const glowGeo = new THREE.BufferGeometry().setFromPoints(glowPoints);
       const glowLine = new THREE.Line(glowGeo, glowMat);
       glowLine.position.set(
-        screen.pos[0] === 0 ? 0 : (screen.pos[0] > 0 ? screen.pos[0] + frameDepthHalf + screenOffset : screen.pos[0] - frameDepthHalf - screenOffset),
+        placement.pos[0] === 0 ? 0 : (placement.pos[0] > 0 ? placement.pos[0] + frameDepthHalf + screenOffset : placement.pos[0] - frameDepthHalf - screenOffset),
         0.15 + this.TOWER_HEIGHT / 2 + 0.3,
-        screen.pos[2] === 0 ? 0 : (screen.pos[2] > 0 ? screen.pos[2] + frameDepthHalf + screenOffset : screen.pos[2] - frameDepthHalf - screenOffset)
+        placement.pos[2] === 0 ? 0 : (placement.pos[2] > 0 ? placement.pos[2] + frameDepthHalf + screenOffset : placement.pos[2] - frameDepthHalf - screenOffset)
       );
-      glowLine.rotation.set(screen.rot[0], screen.rot[1], screen.rot[2]);
+      glowLine.rotation.set(placement.rot[0], placement.rot[1], placement.rot[2]);
       this.neonEdges.push(glowLine);
       this.group.add(glowLine);
     }
@@ -455,11 +455,6 @@ export class TowerAPrefab extends BasePrefab {
     glow.rotation.x = -Math.PI / 2;
     glow.position.y = 0.01;
     this.group.add(glow);
-  }
-
-  updateTowerText(text: string): void {
-    this.displayText = text || this.building.defaultText || 'WHOOKTOWN';
-    this.updateScreenTexture();
   }
 
   override updateData(state: BuildingState): void {

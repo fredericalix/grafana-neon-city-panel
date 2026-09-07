@@ -41,6 +41,31 @@ export class LabelManager {
   // ---------------------------------------------------------------------------
 
   setBuildings(prefabs: Map<string, BasePrefab>): void {
+    // Skip the DOM rebuild when the building set is unchanged (this is called
+    // on every editor drag mousemove). Positions are re-projected each frame
+    // in update(), so a pure move needs no work here.
+    if (prefabs.size === this.labels.size) {
+      let unchanged = true;
+      for (const id of prefabs.keys()) {
+        if (!this.labels.has(id)) {
+          unchanged = false;
+          break;
+        }
+      }
+      if (unchanged) {
+        // Refresh prefab references and text: a rename keeps the same id
+        for (const [id, prefab] of prefabs) {
+          const info = this.labels.get(id);
+          if (info) {
+            info.prefab = prefab;
+            const building = prefab.getBuilding();
+            info.element.textContent = building.name || building.type;
+          }
+        }
+        return;
+      }
+    }
+
     this.clearLabels();
 
     for (const [id, prefab] of prefabs) {

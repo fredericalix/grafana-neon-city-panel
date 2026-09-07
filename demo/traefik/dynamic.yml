@@ -1,0 +1,37 @@
+# Static HA topology: Traefik load-balances the two replicas of each service
+# and actively health-checks them, ejecting a dead replica within ~3s.
+http:
+  routers:
+    backend:
+      rule: PathPrefix(`/api`)
+      entryPoints: [web]
+      service: backend
+    # Grafana alert webhooks stay deliverable while at least one backend lives
+    hooks:
+      rule: PathPrefix(`/hooks`)
+      entryPoints: [web]
+      service: backend
+    frontend:
+      rule: PathPrefix(`/`)
+      entryPoints: [web]
+      service: frontend
+
+  services:
+    backend:
+      loadBalancer:
+        healthCheck:
+          path: /healthz
+          interval: 3s
+          timeout: 2s
+        servers:
+          - url: http://backend-1:8080
+          - url: http://backend-2:8080
+    frontend:
+      loadBalancer:
+        healthCheck:
+          path: /healthz
+          interval: 3s
+          timeout: 2s
+        servers:
+          - url: http://frontend-1:8080
+          - url: http://frontend-2:8080

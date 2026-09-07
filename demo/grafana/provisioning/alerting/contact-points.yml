@@ -1,0 +1,13 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: noodle-webhook
+    receivers:
+      - uid: noodle-webhook
+        type: webhook
+        settings:
+          # Via Traefik so alert delivery survives the loss of one backend replica
+          url: http://traefik/hooks/alerts
+          httpMethod: POST
+        disableResolveMessage: false

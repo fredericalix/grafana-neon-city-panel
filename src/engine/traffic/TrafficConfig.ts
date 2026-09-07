@@ -30,12 +30,6 @@ export interface RoadCell {
   isIntersection: boolean;
 }
 
-export interface PathSegment {
-  start: THREE.Vector3;
-  end: THREE.Vector3;
-  length: number;
-}
-
 // ============================================================================
 // Constants
 // ============================================================================
@@ -76,7 +70,6 @@ export const TRAIL_CONFIG = {
   maxPoints: 50,         // Maximum trail points
   width: 0.06,           // Trail ribbon width
   fadeSpeed: 2.0,        // How fast trail fades
-  updateInterval: 2,     // Update every N frames (optimization)
 };
 
 // Colors for vehicles and trails
@@ -104,15 +97,6 @@ export const SPAWN_CONFIG = {
   minSpawnInterval: 0.3,  // Minimum seconds between spawns
   maxSpawnInterval: 2.0,  // Maximum seconds between spawns
   despawnDistance: 0.1,   // Distance from path end to despawn
-};
-
-// Performance limits
-export const PERFORMANCE_LIMITS = {
-  maxVehiclesDefault: 50,
-  maxVehiclesHigh: 80,
-  maxTrailPointsPerVehicle: 50,
-  lodDistanceSimplified: 15,
-  lodDistancePoint: 30,
 };
 
 // ============================================================================

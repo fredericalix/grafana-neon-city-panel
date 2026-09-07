@@ -205,8 +205,13 @@ export class TowerBPrefab extends BasePrefab {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    // Repeat text to fill the canvas width
+    // Repeat text to fill the canvas width.
+    // A zero width (degraded 2D context, unavailable font) would make
+    // `repeats` infinite and repeat() throw — bail out instead.
     const textWidth = ctx.measureText(text + '   ').width;
+    if (textWidth <= 0) {
+      return;
+    }
     const repeats = Math.ceil(canvas.width / textWidth) + 1;
     const fullText = (text + '   ').repeat(repeats);
 
@@ -578,14 +583,16 @@ export class TowerBPrefab extends BasePrefab {
     // Projection ring - subtle pulsing rotation
     if (this.projectionRing) {
       this.projectionRing.rotation.z += deltaTime * 0.5;
-      const ringMat = this.projectionRing.material as THREE.MeshBasicMaterial;
-      ringMat.opacity = 0.7 + Math.sin(this.animTime * 4) * 0.15;
+      if (this.projectionRing.material instanceof THREE.MeshBasicMaterial) {
+        this.projectionRing.material.opacity = 0.7 + Math.sin(this.animTime * 4) * 0.15;
+      }
     }
 
     // Projection beam - breathing effect
     if (this.projectionBeam) {
-      const beamMat = this.projectionBeam.material as THREE.MeshBasicMaterial;
-      beamMat.opacity = 0.04 + Math.sin(this.animTime * 3) * 0.02;
+      if (this.projectionBeam.material instanceof THREE.MeshBasicMaterial) {
+        this.projectionBeam.material.opacity = 0.04 + Math.sin(this.animTime * 3) * 0.02;
+      }
       this.projectionBeam.scale.x = 1 + Math.sin(this.animTime * 2.5) * 0.08;
       this.projectionBeam.scale.z = 1 + Math.sin(this.animTime * 2.5) * 0.08;
     }
@@ -643,11 +650,6 @@ export class TowerBPrefab extends BasePrefab {
     if (state.text1 !== undefined) {
       this.updateRingText(state.text1);
     }
-  }
-
-  updateHologramEnabled(enabled: boolean): void {
-    this.hologramEnabled = enabled;
-    this.rabbitGroup.visible = enabled;
   }
 
   // ---------------------------------------------------------------------------

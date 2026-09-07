@@ -1,0 +1,125 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 8 }, "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        { "refId": "A", "expr": "sum by (name) (rate(http_requests_total[1m]))", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "HTTP requests/s",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 8 }, "unit": "s" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        { "refId": "A", "expr": "neon:p95s", "legendFormat": "{{name}} p95", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "HTTP latency p95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 8 }, "max": 100, "min": 0, "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "targets": [
+        { "refId": "A", "expr": "neon:errpct", "legendFormat": "{{name}} 5xx", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "HTTP error rate (5xx %)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 8 }, "max": 1, "min": 0, "unit": "bool_on_off" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "targets": [
+        { "refId": "A", "expr": "up", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "B", "expr": "pg_up", "legendFormat": "postgres (pg_up)", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "Targets up",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 8 }, "max": 100, "min": 0, "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 5,
+      "targets": [
+        { "refId": "A", "expr": "neon:cpu", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "Container CPU %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 8 }, "max": 100, "min": 0, "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 6,
+      "targets": [
+        { "refId": "A", "expr": "neon:ram", "legendFormat": "{{name}}", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "Container RAM % (of limit)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": { "defaults": { "custom": { "fillOpacity": 8 } }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 7,
+      "targets": [
+        { "refId": "A", "expr": "sum(pg_stat_activity_count)", "legendFormat": "connections", "datasource": { "type": "prometheus", "uid": "neon-prom" } },
+        { "refId": "B", "expr": "max(pg_settings_max_connections)", "legendFormat": "max_connections", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "PostgreSQL connections",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 24 },
+      "id": 8,
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "refId": "A", "expr": "sum(noodlebar_orders_total)", "legendFormat": "orders", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "Total ramen orders",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "neon-prom" },
+      "fieldConfig": { "defaults": { "max": 100, "min": 0, "unit": "percent" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 24 },
+      "id": 9,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [
+        { "refId": "A", "expr": "round(100 * avg(up))", "legendFormat": "targets up", "datasource": { "type": "prometheus", "uid": "neon-prom" } }
+      ],
+      "title": "Fleet availability",
+      "type": "gauge"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["neon-city", "demo"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30m", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Noodle Bar — Classic Metrics",
+  "uid": "neon-classic",
+  "version": 1,
+  "weekStart": ""
+}

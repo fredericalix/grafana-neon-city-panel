@@ -22,6 +22,9 @@ interface DetailTooltipEntry {
   position: THREE.Vector3;
   createdAt: number;
   offset: { x: number; y: number };
+  // Cached layout size; only re-measured when the content changes, so the
+  // per-frame positioning pass never forces a synchronous reflow.
+  size: { width: number; height: number };
 }
 
 /**
@@ -127,12 +130,14 @@ export class TooltipManager {
       position,
       createdAt: Date.now(),
       offset: { x: 0, y: 0 },
+      size: { width: 250, height: 150 },
     };
+    entry.size = this.measureDetailSize(entry);
 
     this.detailTooltips.set(building.id, entry);
     this.setupDragHandlers(building.id, element);
-    this.updateDetailPosition(building.id);
-    this.lineManager.addConnection(building.id, position, element);
+    this.positionDetailTooltip(entry);
+    this.lineManager.addConnection(building.id, position);
   }
 
   hideDetailTooltip(buildingId: string): void {
@@ -186,17 +191,32 @@ export class TooltipManager {
         }
         entry.element.appendChild(this.buildBody(newState));
         entry.state = newState;
+        // Content changed: the cached size is stale
+        entry.size = this.measureDetailSize(entry);
       }
     }
   }
 
   update(): void {
+    // Read pass: a single layout query up front. The canvas is inset:0 in the
+    // container, so its client size is the container's positioning space.
+    const width = this.canvas.clientWidth;
+    const height = this.canvas.clientHeight;
+
+    const hover = this.hoverPosition ? this.projectToScreen(this.hoverPosition, width, height) : null;
+    const detailPositions = new Map<string, { left: number; top: number } | null>();
+    for (const [id, entry] of this.detailTooltips) {
+      detailPositions.set(id, this.computeDetailPosition(entry, width, height));
+    }
+
+    // Write pass: no layout reads below this point
     if (this.hoverPosition) {
-      this.updateHoverPosition();
+      this.applyHoverPosition(hover);
     }
-    for (const [id] of this.detailTooltips) {
-      this.updateDetailPosition(id);
+    for (const [id, entry] of this.detailTooltips) {
+      this.applyDetailPosition(id, entry, detailPositions.get(id) ?? null);
     }
+
     const dt = this.clock.getDelta();
     this.lineManager.update(dt);
   }
@@ -396,7 +416,12 @@ export class TooltipManager {
     if (!this.hoverPosition) {
       return;
     }
-    const coords = this.projectToScreen(this.hoverPosition);
+    this.applyHoverPosition(
+      this.projectToScreen(this.hoverPosition, this.canvas.clientWidth, this.canvas.clientHeight)
+    );
+  }
+
+  private applyHoverPosition(coords: { x: number; y: number; behindCamera: boolean } | null): void {
     if (coords && !coords.behindCamera) {
       this.hoverTooltip.style.left = `${coords.x}px`;
       this.hoverTooltip.style.top = `${coords.y}px`;
@@ -406,23 +431,23 @@ export class TooltipManager {
     }
   }
 
-  private updateDetailPosition(buildingId: string): void {
-    const entry = this.detailTooltips.get(buildingId);
-    if (!entry) {
-      return;
-    }
+  private positionDetailTooltip(entry: DetailTooltipEntry): void {
+    const pos = this.computeDetailPosition(entry, this.canvas.clientWidth, this.canvas.clientHeight);
+    this.applyDetailPosition(entry.building.id, entry, pos);
+  }
 
-    const coords = this.projectToScreen(entry.position);
+  private computeDetailPosition(
+    entry: DetailTooltipEntry,
+    containerWidth: number,
+    containerHeight: number
+  ): { left: number; top: number } | null {
+    const coords = this.projectToScreen(entry.position, containerWidth, containerHeight);
     if (!coords || coords.behindCamera) {
-      // Hide entirely, consistent with PopupLineManager which hides its line
-      // (clamped edge coordinates are meaningless behind the camera)
-      entry.element.style.display = 'none';
-      return;
+      return null;
     }
 
-    const containerRect = this.container.getBoundingClientRect();
-    const tooltipWidth = entry.element.offsetWidth || 250;
-    const tooltipHeight = entry.element.offsetHeight || 150;
+    const tooltipWidth = entry.size.width;
+    const tooltipHeight = entry.size.height;
     const margin = 10;
 
     let baseLeft = coords.x - tooltipWidth / 2;
@@ -435,14 +460,43 @@ export class TooltipManager {
     let left = baseLeft + entry.offset.x;
     let top = baseTop + entry.offset.y;
 
-    left = Math.max(margin, Math.min(left, containerRect.width - tooltipWidth - margin));
-    top = Math.max(margin, Math.min(top, containerRect.height - tooltipHeight - margin));
+    left = Math.max(margin, Math.min(left, containerWidth - tooltipWidth - margin));
+    top = Math.max(margin, Math.min(top, containerHeight - tooltipHeight - margin));
+
+    return { left, top };
+  }
+
+  private applyDetailPosition(
+    buildingId: string,
+    entry: DetailTooltipEntry,
+    pos: { left: number; top: number } | null
+  ): void {
+    if (!pos) {
+      // Hide entirely, consistent with PopupLineManager which hides its line
+      // (clamped edge coordinates are meaningless behind the camera)
+      entry.element.style.display = 'none';
+      this.lineManager.setPopupAnchor(buildingId, null);
+      return;
+    }
 
     entry.element.style.opacity = '1';
-    entry.element.style.left = `${left}px`;
-    entry.element.style.top = `${top}px`;
+    entry.element.style.left = `${pos.left}px`;
+    entry.element.style.top = `${pos.top}px`;
     entry.element.style.transform = 'none';
     entry.element.style.display = 'block';
+
+    // Bottom-center of the popup, already in canvas coordinates (canvas is inset:0)
+    this.lineManager.setPopupAnchor(buildingId, {
+      x: pos.left + entry.size.width / 2,
+      y: pos.top + entry.size.height,
+    });
+  }
+
+  private measureDetailSize(entry: DetailTooltipEntry): { width: number; height: number } {
+    return {
+      width: entry.element.offsetWidth || 250,
+      height: entry.element.offsetHeight || 150,
+    };
   }
 
   private removeOldestDetailTooltip(): void {
@@ -459,17 +513,21 @@ export class TooltipManager {
     }
   }
 
-  private projectToScreen(worldPosition: THREE.Vector3): { x: number; y: number; behindCamera: boolean } | null {
+  private projectToScreen(
+    worldPosition: THREE.Vector3,
+    width: number,
+    height: number
+  ): { x: number; y: number; behindCamera: boolean } | null {
     this.tempV.copy(worldPosition);
     this.tempV.project(this.camera);
 
     const behindCamera = this.tempV.z > 1;
 
-    let x = (this.tempV.x * 0.5 + 0.5) * this.canvas.clientWidth;
-    let y = (this.tempV.y * -0.5 + 0.5) * this.canvas.clientHeight;
+    let x = (this.tempV.x * 0.5 + 0.5) * width;
+    let y = (this.tempV.y * -0.5 + 0.5) * height;
 
-    x = Math.max(0, Math.min(this.canvas.clientWidth, x));
-    y = Math.max(0, Math.min(this.canvas.clientHeight, y));
+    x = Math.max(0, Math.min(width, x));
+    y = Math.max(0, Math.min(height, y));
 
     return { x, y, behindCamera };
   }

@@ -22,6 +22,22 @@ export function computeDiagnostics(
     return [];
   }
 
+  // Query failures deserve their own message — reporting "No data received"
+  // would send the user looking at field mappings instead of the query itself
+  if (data.state === LoadingState.Error) {
+    const errorMessage = data.errors?.[0]?.message;
+    return [
+      {
+        id: 'query-error',
+        severity: 'warning',
+        title: 'Query failed',
+        detail: errorMessage
+          ? `The data query returned an error: ${errorMessage}`
+          : 'The data query returned an error. Check the query inspector for details.',
+      },
+    ];
+  }
+
   const hasData = dataHasRows(data);
 
   if (!hasData) {
@@ -85,7 +101,7 @@ export function computeDiagnostics(
 
 function dataHasRows(data: PanelData): boolean {
   for (const frame of data.series) {
-    if (frame.fields.length > 0 && frame.fields[0].values.length > 0) {
+    if (frame.fields.some((f) => f.values.length > 0)) {
       return true;
     }
   }

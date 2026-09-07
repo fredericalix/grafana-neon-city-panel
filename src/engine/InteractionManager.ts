@@ -146,9 +146,9 @@ export class InteractionManager {
 
     if (newId !== this.hoveredId) {
       this.hoveredId = newId;
-      if (newId) {
+      const prefab = newId ? this.buildingPrefabs.get(newId) : undefined;
+      if (newId && prefab) {
         this.domElement.style.cursor = 'pointer';
-        const prefab = this.buildingPrefabs.get(newId)!;
         this.callbacks.onHover?.(newId, prefab.getObject().position.clone());
       } else {
         this.domElement.style.cursor = 'default';

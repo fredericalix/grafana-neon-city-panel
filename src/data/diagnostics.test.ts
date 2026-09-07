@@ -48,6 +48,40 @@ describe('computeDiagnostics', () => {
     expect(result).toEqual([]);
   });
 
+  it('returns a dedicated query-error message in the error state', () => {
+    const data = panelData([], LoadingState.Error);
+    data.errors = [{ message: 'timeout connecting to database' } as never];
+    const result = computeDiagnostics(data, makeOptions(), []);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      id: 'query-error',
+      severity: 'warning',
+      title: 'Query failed',
+    });
+    expect(result[0].detail).toContain('timeout connecting to database');
+  });
+
+  it('returns a generic query-error detail when no error message is available', () => {
+    const data = panelData([], LoadingState.Error);
+    const result = computeDiagnostics(data, makeOptions(), []);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('query-error');
+    expect(result[0].detail).toContain('query inspector');
+  });
+
+  it('detects rows even when only a non-first field has values', () => {
+    const frame = tableFrame({
+      name: { type: FieldType.string, values: [] },
+      status: { type: FieldType.string, values: ['online'] },
+    });
+    const data = panelData([frame]);
+    const result = computeDiagnostics(data, makeOptions(), []);
+
+    expect(result[0]?.id).not.toBe('no-data');
+  });
+
   it('returns no-data message when series is empty', () => {
     const data = panelData([]);
     const result = computeDiagnostics(data, makeOptions(), []);

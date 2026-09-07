@@ -5,7 +5,6 @@ import {
   DEFAULT_TRAFFIC_CONFIG,
   SPEED_MULTIPLIERS,
   TRAFFIC_COLORS,
-  PERFORMANCE_LIMITS,
   TrafficSpeed,
 } from './TrafficConfig';
 
@@ -90,13 +89,6 @@ describe('TrafficConfig', () => {
       expect(SPEED_MULTIPLIERS).toHaveProperty('slow');
       expect(SPEED_MULTIPLIERS).toHaveProperty('normal');
       expect(SPEED_MULTIPLIERS).toHaveProperty('fast');
-    });
-
-    it('PERFORMANCE_LIMITS has reasonable values', () => {
-      expect(PERFORMANCE_LIMITS.maxVehiclesDefault).toBeGreaterThan(0);
-      expect(PERFORMANCE_LIMITS.maxVehiclesHigh).toBeGreaterThanOrEqual(
-        PERFORMANCE_LIMITS.maxVehiclesDefault
-      );
     });
   });
 });

@@ -574,8 +574,13 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
     // Wrap to keep the float32 uTime uniforms precise on long-running dashboards
     this.animTime = (this.animTime + deltaTime) % 3600;
 
-    this.animateBandRotation(deltaTime);
-    this.updateTeleprinter(deltaTime);
+    // Offline: freeze band rotation/wobble and teleprinter scrolling —
+    // uTime uniforms still update so the shader stays coherent with the
+    // offline preset applied by onStatusChange().
+    if (this.status !== 'offline') {
+      this.animateBandRotation(deltaTime);
+      this.updateTeleprinter(deltaTime);
+    }
     this.updateShaderUniforms();
   }
 
@@ -592,10 +597,6 @@ export class MonitorTubeGiantPrefab extends BasePrefab {
   }
 
   private updateTeleprinter(deltaTime: number): void {
-    if (this.status === 'offline') {
-      return;
-    }
-
     const speed = this.getActivitySpeed();
 
     // Text offsets advance every frame (cheap); canvas repaints are throttled.

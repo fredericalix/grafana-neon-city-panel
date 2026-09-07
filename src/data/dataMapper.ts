@@ -109,11 +109,11 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
         text1: text1Field ? String(text1Field.values[i] ?? '') : undefined,
         text2: text2Field ? String(text2Field.values[i] ?? '') : undefined,
         text3: text3Field ? String(text3Field.values[i] ?? '') : undefined,
-        cpuUsage: cpuField ? Number(cpuField.values[i]) : undefined,
-        ramUsage: ramField ? Number(ramField.values[i]) : undefined,
+        cpuUsage: cpuField ? toFiniteNumber(cpuField.values[i]) : undefined,
+        ramUsage: ramField ? toFiniteNumber(ramField.values[i]) : undefined,
         bankQuantity: quantityField ? resolveBankQuantity(String(quantityField.values[i] ?? '')) : undefined,
-        bankAmount: amountField ? Number(amountField.values[i]) : undefined,
-        ringCount: ringCountField ? resolveRingCount(Number(ringCountField.values[i])) : undefined,
+        bankAmount: amountField ? toFiniteNumber(amountField.values[i]) : undefined,
+        ringCount: ringCountField ? resolveRingCount(toFiniteNumber(ringCountField.values[i])) : undefined,
         monitorBands: bandFields.length > 0
           ? bandFields.map((f) => ({ value: Math.max(0, Math.min(100, Number(f.values[i]) || 0)) }))
           : undefined,
@@ -173,7 +173,6 @@ export function mapDataToStates(data: PanelData, options: CityOptions): Building
  */
 function extractPrometheusStates(data: PanelData, options: CityOptions): BuildingState[] {
   const stateMap = new Map<string, BuildingState>();
-  const seenInA = new Set<string>();
 
   for (const frame of data.series) {
     const refId = frame.refId;
@@ -187,7 +186,6 @@ function extractPrometheusStates(data: PanelData, options: CityOptions): Buildin
 
       if (refId === 'A' || refId === undefined) {
         state.status = resolveStatusFromValue(value, options.thresholds);
-        seenInA.add(name);
       } else if (refId === 'B') {
         state.cpuUsage = value;
       } else if (refId === 'C') {
@@ -386,7 +384,17 @@ function resolveBankQuantity(text: string): BankQuantity {
   return 'none';
 }
 
-function resolveRingCount(value: number): DisplayRingCount {
+// Empty or non-numeric cells produce NaN, which must not leak into building
+// state (tooltips would display "NaN%").
+function toFiniteNumber(value: unknown): number | undefined {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+function resolveRingCount(value: number | undefined): DisplayRingCount | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
   return value === 2 ? 2 : 3;
 }
 

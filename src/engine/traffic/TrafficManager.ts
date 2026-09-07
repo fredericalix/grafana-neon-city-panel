@@ -31,6 +31,13 @@ export class TrafficManager {
   private spawnTimer = 0;
   private nextSpawnInterval = 1;
 
+  // Consecutive path-generation failures. A road network too small or too
+  // fragmented for a valid path would otherwise trigger an endless
+  // allocate/dispose churn; past this threshold spawning is suspended
+  // until setRoads() resets the counter.
+  private static readonly MAX_SPAWN_FAILURES = 10;
+  private spawnFailures = 0;
+
   constructor(scene: THREE.Scene) {
     this.scene = scene;
     this.pathGenerator = new PathGenerator();
@@ -43,6 +50,7 @@ export class TrafficManager {
   setRoads(roads: string[], origin: { x: number; z: number }): void {
     this.roads = roads;
     this.pathGenerator.parseRoads(roads, origin);
+    this.spawnFailures = 0;
 
     // Clear existing vehicles when roads change
     this.clearAllVehicles();
@@ -120,7 +128,7 @@ export class TrafficManager {
     this.spawnTimer += deltaTime;
     const vehicleDeficit = targetCount - this.vehicles.length;
 
-    if (vehicleDeficit > 0) {
+    if (vehicleDeficit > 0 && this.spawnFailures < TrafficManager.MAX_SPAWN_FAILURES) {
       // Need more vehicles - spawn them
       if (vehicleDeficit > 3 && this.spawnTimer >= 0.1) {
         // Spawn up to 3 vehicles at once to catch up faster
@@ -154,6 +162,21 @@ export class TrafficManager {
    * Spawn a new vehicle
    */
   private spawnVehicle(): void {
+    // Generate the path first so a doomed spawn (road network too small or
+    // fragmented for a valid path) allocates no GPU resources.
+    const path = this.pathGenerator.generateRandomPath(undefined, 8);
+    if (path.length < 3) {
+      this.spawnFailures++;
+      if (this.spawnFailures === TrafficManager.MAX_SPAWN_FAILURES) {
+        console.warn(
+          '[neon-city-panel] Traffic suspended: the road network cannot produce a valid path. ' +
+            'Add more connected road cells to re-enable traffic.'
+        );
+      }
+      return;
+    }
+    this.spawnFailures = 0;
+
     // Determine vehicle type based on ratio
     const isLightCycle = Math.random() < this.config.lightCycleRatio;
 
@@ -167,16 +190,8 @@ export class TrafficManager {
       vehicle = new DataPacket();
     }
 
-    // Initialize and generate path
     vehicle.initialize();
     vehicle.setSpeed(this.config.speed);
-
-    const path = this.pathGenerator.generateRandomPath(undefined, 8);
-    if (path.length < 3) {
-      vehicle.dispose();
-      return;
-    }
-
     vehicle.setPath(path, this.pathGenerator);
 
     // Add to scene
@@ -198,8 +213,14 @@ export class TrafficManager {
       if (vehicle.needsNewPath) {
         const newPath = this.pathGenerator.generateRandomPath(undefined, 8);
         if (newPath.length >= 3) {
+          this.spawnFailures = 0;
           vehicle.assignNewPath(newPath, this.pathGenerator);
           stillActive.push(vehicle);
+        } else if (++this.spawnFailures >= TrafficManager.MAX_SPAWN_FAILURES) {
+          // The road network can no longer produce valid paths — retire the
+          // vehicle instead of retrying path generation every frame.
+          vehicle.startDisposal();
+          this.disposingVehicles.push(vehicle);
         } else {
           // Couldn't generate valid path, try again next frame
           stillActive.push(vehicle);

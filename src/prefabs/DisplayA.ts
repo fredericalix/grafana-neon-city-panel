@@ -397,8 +397,13 @@ export class DisplayAPrefab extends BasePrefab {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    // Repeat text to fill canvas for seamless scrolling
+    // Repeat text to fill canvas for seamless scrolling.
+    // A zero width (degraded 2D context, unavailable font) would make
+    // `repeats` infinite and freeze the dashboard — bail out instead.
     const textWidth = ctx.measureText(text + '   ').width;
+    if (textWidth <= 0) {
+      return;
+    }
     const repeats = Math.ceil(canvas.width / textWidth) + 2;
 
     // Glow effect - stronger for visibility

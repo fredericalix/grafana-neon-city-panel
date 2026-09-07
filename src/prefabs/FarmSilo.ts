@@ -58,8 +58,9 @@ export class FarmSiloPrefab extends BasePrefab {
     body.castShadow = true;
     this.group.add(body);
 
-    // Fill cylinder (inside body)
-    const fillGeo = new THREE.CylinderGeometry(FILL_RADIUS, FILL_RADIUS, 0.01, 12);
+    // Fill cylinder (inside body). Unit height: the level is animated via
+    // scale.y instead of recreating the geometry every frame.
+    const fillGeo = new THREE.CylinderGeometry(FILL_RADIUS, FILL_RADIUS, 1, 12);
     this.fillMaterial = new THREE.MeshBasicMaterial({
       color: COLORS.glow.green,
       transparent: true,
@@ -175,9 +176,8 @@ export class FarmSiloPrefab extends BasePrefab {
 
     this.fillCylinder.visible = true;
 
-    // Replace geometry with new height
-    this.fillCylinder.geometry.dispose();
-    this.fillCylinder.geometry = new THREE.CylinderGeometry(FILL_RADIUS, FILL_RADIUS, height, 12);
+    // Unit-height geometry: scale and reposition, no per-frame allocation
+    this.fillCylinder.scale.y = height;
     this.fillCylinder.position.y = FILL_BASE_Y + height / 2;
 
     // Update color based on level (only when not warning/critical/offline)

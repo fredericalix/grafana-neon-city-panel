@@ -8,13 +8,11 @@
 import * as THREE from 'three';
 import { TrailSystem } from './TrailSystem';
 import { PathGenerator } from './PathGenerator';
-import {
-  TrafficSpeed,
-  VehicleType,
-  BASE_VEHICLE_SPEED,
-  getSpeedMultiplier,
-  SPAWN_CONFIG,
-} from './TrafficConfig';
+import { TrafficSpeed, VehicleType, BASE_VEHICLE_SPEED, getSpeedMultiplier, SPAWN_CONFIG } from './TrafficConfig';
+
+// Frame-rate independent direction smoothing: -60 * ln(0.9) ≈ 6.3, chosen so
+// that 1 - exp(-k * dt) equals the old fixed lerp factor 0.1 at 60 fps
+const DIRECTION_SMOOTHING_RATE = -60 * Math.log(0.9);
 
 export abstract class VehicleBase {
   protected group: THREE.Group;
@@ -151,9 +149,9 @@ export abstract class VehicleBase {
     const newPosition = pathGenerator.getPointOnPath(this.path, this.pathProgress, this.pathLength, this.tempPoint);
     const newDirection = pathGenerator.getDirectionOnPath(this.path, this.pathProgress, this.pathLength, this.tempDirection);
 
-    // Smooth direction changes
+    // Smooth direction changes (frame-rate independent)
     this.targetDirection.copy(newDirection);
-    this.direction.lerp(this.targetDirection, 0.1);
+    this.direction.lerp(this.targetDirection, 1 - Math.exp(-DIRECTION_SMOOTHING_RATE * deltaTime));
     this.direction.normalize();
 
     // Update position
@@ -268,24 +266,5 @@ export abstract class VehicleBase {
         material.dispose();
       }
     });
-  }
-
-  /**
-   * Reset vehicle for reuse (object pooling)
-   */
-  reset(): void {
-    this.path = [];
-    this.pathLength = 0;
-    this.pathProgress = 0;
-    this.position.set(0, 0, 0);
-    this.direction.set(0, 0, 1);
-    this.targetDirection.set(0, 0, 1);
-    this.active = true;
-    this.disposing = false;
-    this.needsNewPath = false;
-    this.animTime = 0;
-    this.group.visible = true;
-    this.trail.clear();
-    this.trail.setActive(true);
   }
 }
